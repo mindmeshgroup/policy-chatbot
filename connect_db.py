@@ -2,38 +2,59 @@ import os
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
-# 1. Define the path to the folder you downloaded from OneDrive
-CHROMA_PATH = "chroma_db" 
+CHROMA_PATH = "./chroma_db_vlm" 
+COLLECTION_NAME = "latrobe_policy_v4"
 
-# 2. Set up the EXACT same embedding model Veidehi used
-# This will download a small model (about 80MB) the first time you run it
+# STEP 1 & 2: EMBEDDINGS & CONNECTION
+print("Initializing Embedding Model: all-MiniLM-L6-v2...")
 model_name = "sentence-transformers/all-MiniLM-L6-v2"
-model_kwargs = {'device': 'cpu'}
-encode_kwargs = {'normalize_embeddings': False}
+embeddings = HuggingFaceEmbeddings(model_name=model_name)
 
-embeddings = HuggingFaceEmbeddings(
-    model_name=model_name,
-    model_kwargs=model_kwargs,
-    encode_kwargs=encode_kwargs
-)
-
-# 3. Connect to the existing database
 try:
+    # Connecting to the persisted database
     db = Chroma(
         persist_directory=CHROMA_PATH, 
-        embedding_function=embeddings
+        embedding_function=embeddings,
+        collection_name=COLLECTION_NAME
     )
-    print("Successfully connected to the Policy Database using HuggingFace!")
+    
+    # Verify the connection by checking the chunk count
+    chunk_count = db._collection.count()
+    print(f" Successfully connected to {COLLECTION_NAME}")
+    print(f" Total policy chunks available: {chunk_count}")
 
-    # 4. TEST: Search the Policy DB
-    query = "What is the policy on academic integrity?"
-    # Search for the top 3 most relevant parts of the policy
-    docs = db.similarity_search(query, k=3)
+    #STEP 3: RETRIEVAL STEP
+    
+    retriever = db.as_retriever(search_kwargs={"k": 5})
 
-    print(f"\n--- Search Results for: '{query}' ---")
-    for i, doc in enumerate(docs):
-        print(f"\nResult {i+1}:")
-        print(doc.page_content[:300] + "...") # Print first 300 characters
-        
+    # Test Query 
+    query = "How are the ATAR scores adjusted?"
+    print(f"\n--- Testing Retrieval for: '{query}' ---")
+    
+    # Fetching the documents
+    docs = retriever.invoke(query)
+
+    if not docs:
+        print(" No matching documents found. Ensure the chroma_db_vlm folder is in the correct directory.")
+    else:
+        # --- STEP 7: SOURCE METADATA PREVIEW ---
+        for i, doc in enumerate(docs):
+           
+            source_file = doc.metadata.get("source", "Unknown File")
+            breadcrumb = doc.metadata.get("breadcrumb", "General Document")
+            audience_tag = doc.metadata.get("audience", "Unknown")
+            category_tag = doc.metadata.get("category", "Unknown")
+            doc_type=doc.metadata.get("doc_type", "Unknown")
+            effective_yr=doc.metadata.get("effective_yr", "Unknown")
+            review_yr=doc.metadata.get("review_year", "Unknown")
+            has_table=doc.metadata.get("has_table", False)
+            
+            print(f"\n[Result {i+1}]")
+            print(f"Source: { source_file}")
+            print(f"Section: {breadcrumb}")
+            print(f"Target Audience: {audience_tag} | Category: {category_tag}")
+            print(f"Content: {doc.page_content[:200]}...")
+
 except Exception as e:
     print(f" Error: {e}")
+    print("Troubleshooting: Ensure 'chroma_db_vlm' is in the same folder as this script.")
