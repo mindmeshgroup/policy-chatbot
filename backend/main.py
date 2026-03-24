@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from retrieval import retrieve_policy_chunks 
-from prompt_logic import prompt_template, format_docs_with_metadata
+from langchain_community.chat_models import ChatOpenAI
+from backend.core.retrieval import retrieve_policy_chunks
+from backend.core.prompt_logic import prompt_template, format_docs_with_metadata
 
 # 1. Load the API key 
 load_dotenv()
