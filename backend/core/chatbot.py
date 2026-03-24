@@ -1,10 +1,10 @@
 import os
 from dotenv import load_dotenv
 
-from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_openai import ChatOpenAI
-from langchain.chains.retrieval_qa.base import RetrievalQA
+from langchain.vectorstores import Chroma
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.chat_models import ChatOpenAI
+from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 
 
@@ -64,7 +64,7 @@ qa_chain = RetrievalQA.from_chain_type(
 
 
 query = "What are the specific components of academic dress for a Doctor of Philosophy graduate at La Trobe University, and how do they differ from those of a Bachelor's degree graduate? "
-result = qa_chain.invoke({"query": query})
+result = qa_chain({"query": query})
 
 print("\n CHATBOT ANSWER")
 print(result["result"])
