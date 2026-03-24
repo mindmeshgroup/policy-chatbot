@@ -14,7 +14,7 @@ if os.path.exists(CHROMA_PATH):
         index_files = os.listdir(os.path.join(CHROMA_PATH, 'index'))
         print(f"Index folder contains {len(index_files)} data files.")
     else:
-        print("CRITICAL: 'index' folder is missing. The database is empty.")
+        print("CRITICAL: 'index' folder is missing. The databse is empty.")
 else:
     print(f"Folder NOT found at {CHROMA_PATH}")
 
