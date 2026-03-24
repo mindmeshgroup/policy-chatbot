@@ -31,7 +31,7 @@ def ask_policy_bot(question: str):
 
 # TEST THE COMPLETE SYSTEM
 if __name__ == "__main__":
-    test_q = "What is the policy on ATAR adjustments?"
+    test_q = "What are the specific components of academic dress for a Doctor of Philosophy graduate at La Trobe University, and how do they differ from those of a Bachelor's degree graduate? "
     answer = ask_policy_bot(test_q)
     
     print("\n CHATBOT RESPONSE")
