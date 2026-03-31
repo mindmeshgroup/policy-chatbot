@@ -27,5 +27,6 @@ chroma_db_vlm/
 # OS
 .DS_Store
 
+# New ignores 
 node_modules/
 .next/
