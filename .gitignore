@@ -27,5 +27,5 @@ chroma_db_vlm/
 # OS
 .DS_Store
 
-.node_modules
-.next
+node_modules/
+.next/
