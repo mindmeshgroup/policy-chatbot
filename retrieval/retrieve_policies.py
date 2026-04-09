@@ -1,5 +1,4 @@
 from typing import List, Dict
-
 def retrieve_policies(question: str, role: str = "Student", max_k: int = 3) -> List[Dict]:
     """
     STUB: Mock implementation for retrieval part
