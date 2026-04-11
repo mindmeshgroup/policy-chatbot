@@ -79,33 +79,32 @@ function ChatContent() {
   ];
 
   return (
-    <div style={{ backgroundColor: '#f5f5f5', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ backgroundColor: 'white', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', sans-serif" }}>
 
-      {/* ── TOP NAVBAR ── */}
-      <div style={{ backgroundColor: 'white', padding: '16px 60px', display: 'flex', alignItems: 'center', gap: '24px', borderBottom: '1px solid #eee', position: 'sticky', top: 0, zIndex: 10 }}>
-
-        {/* Logo + Policy Chatbot label */}
+      {/* ── TOP NAVBAR — DESKTOP ── */}
+      <div className="hidden md:flex" style={{ backgroundColor: 'white', padding: '16px 60px', alignItems: 'center', gap: '24px', borderBottom: '1px solid #eee', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flexShrink: 0 }}>
           <img src="/latrobe-logo.png" alt="La Trobe" style={{ height: '80px', objectFit: 'contain' }} />
           <p style={{ fontSize: '12px', fontWeight: '500', color: '#444', margin: '2px 0 0 0', paddingLeft: '4px' }}>Policy Chatbot</p>
         </div>
-
-        {/* Home bar — desktop only */}
-        <div className="hidden md:block" style={{ flex: 1, margin: '0 16px' }}>
+        <div style={{ flex: 1, margin: '0 16px' }}>
           <div style={{ border: '3px solid #C8102E', borderRadius: '8px', padding: '14px 24px', fontSize: '18px', fontWeight: '700', color: '#1a1a1a' }}>
             Home
           </div>
         </div>
-
-        {/* Spacer for mobile */}
-        <div className="block md:hidden" style={{ flex: 1 }} />
-
-        {/* Y Avatar */}
         <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#C8102E', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, boxShadow: '0 4px 8px rgba(0,0,0,0.25)' }}>
           <span style={{ color: 'white', fontWeight: '700', fontSize: '24px' }}>Y</span>
         </div>
       </div>
 
+      {/* ── TOP NAVBAR — MOBILE ── */}
+      <div className="flex md:hidden" style={{ backgroundColor: 'white', padding: '16px 20px', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #eee', position: 'sticky', top: 0, zIndex: 10 }}>
+        <img src="/latrobe-logo.png" alt="La Trobe" style={{ height: '90px', objectFit: 'contain' }} />
+        <p style={{ fontSize: '13px', fontWeight: '500', color: '#444', margin: '4px 0 8px 0', textAlign: 'center' }}>Policy Chatbot</p>
+        <div style={{ height: '3px', backgroundColor: '#C8102E', width: '70%', borderRadius: '2px' }} />
+      </div>
+
+      
       {/* ── MAIN LAYOUT ── */}
       <div style={{ display: 'flex', flex: 1, width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '24px 60px', gap: '24px', paddingBottom: '100px' }}>
 
@@ -138,7 +137,7 @@ function ChatContent() {
         </div>
 
         {/* ── CHAT PANEL ── */}
-        <div style={{ flex: 1, backgroundColor: 'white', borderRadius: '12px', border: '2px solid #a0a0a0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: '680px' }}>
+        <div className="md:border-[2px] md:border-[#a0a0a0] md:shadow-md" style={{ flex: 1, backgroundColor: 'white', borderRadius: '12px', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: '680px' }}>
 
           {/* Disclaimer */}
           <div style={{ backgroundColor: '#fff8e1', borderBottom: '1px solid #ffe082', padding: '8px 20px' }}>
