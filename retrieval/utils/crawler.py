@@ -1,7 +1,6 @@
 import asyncio
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig
 
-# 2-second bypass for La Trobe's dynamic JavaScript loading
 WAIT_JS = "await new Promise(r => setTimeout(r, 2000));"
 
 async def _scout_links(base_url: str) -> list:

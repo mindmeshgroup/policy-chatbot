@@ -4,17 +4,17 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct, Filter, FieldCondition, MatchValue, SparseVector
 from fastembed import SparseTextEmbedding
 
-# --- CONFIGURATION ---
+# CONFIGURATION 
 QDRANT_URL = "http://localhost:6333"
 EMBED_MODEL = "nomic-embed-text"
 
-# Matches the names defined in retrieval/setup_db.py
+
 DENSE_NAME = "text-dense" 
 SPARSE_NAME = "text-sparse"
 
 client = QdrantClient(url=QDRANT_URL)
 
-# Initialize the Sparse Embedding Model (SPLADE)
+# Sparse Embedding Model (SPLADE)
 print("Loading Sparse Embedding Model (SPLADE)...")
 sparse_model = SparseTextEmbedding(model_name="prithivida/Splade_PP_en_v1")
 
@@ -25,7 +25,6 @@ def get_dense_embedding(text):
 
 def get_sparse_embedding(text):
     """Converts text into a sparse index-value dictionary using FastEmbed."""
-    # FastEmbed expects a list of strings, so we wrap the text in brackets
     sparse_generator = list(sparse_model.embed([text]))
     sparse_result = sparse_generator[0]
     
@@ -35,7 +34,7 @@ def get_sparse_embedding(text):
     )
 
 def clean_and_upsert(collection_name, payloads):
-    """Phase 5: The Vector Vault (The 'Clean Sweep' Strategy)"""
+    """Phase 5: The Vector Vault """
     if not payloads:
         return
     
@@ -56,11 +55,11 @@ def clean_and_upsert(collection_name, payloads):
     for p in payloads:
         chunk_text = p['content']
         
-        # 1. Generate both vectors
+        # Generate both vectors
         dense_vec = get_dense_embedding(chunk_text)
         sparse_vec = get_sparse_embedding(chunk_text)
         
-        # 2. Package both vectors with their correct keys
+        # Package both vectors with their correct keys
         points.append(PointStruct(
             id=str(uuid.uuid4()),
             vector={
@@ -70,6 +69,6 @@ def clean_and_upsert(collection_name, payloads):
             payload=p
         ))
 
-    # 3. Upsert to Database
+    # Upsert to Database
     client.upsert(collection_name=collection_name, points=points)
     print(f"--- SUCCESS: {len(points)} Hybrid points saved to Qdrant ---")
