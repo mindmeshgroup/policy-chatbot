@@ -31,21 +31,36 @@ function ChatContent() {
     if (!loading) inputRef.current?.focus();
   }, [loading]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (inputValue.trim() === '' || loading) return;
     const userText = inputValue.trim();
     setMessages(prev => [...prev, { id: prev.length + 1, sender: 'user', text: userText }]);
     setInputValue('');
     setLoading(true);
-    setTimeout(() => {
+
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: userText })
+      });
+      const data = await response.json();
       setMessages(prev => [...prev, {
         id: prev.length + 1,
         sender: 'bot',
-        text: 'This is a placeholder response. Backend coming soon!',
-        sources: ['Academic Policy 2024, Page 3', 'Student Handbook 2024']
+        text: data.answer || 'No answer found.',
+        sources: data.sources || []
       }]);
+    } catch (error) {
+      setMessages(prev => [...prev, {
+        id: prev.length + 1,
+        sender: 'bot',
+        text: '⚠️ Could not connect to the server. Please try again.',
+        sources: []
+      }]);
+    } finally {
       setLoading(false);
-    }, 2000);
+    }
   };
 
   const handleKeyDown = (e) => {
