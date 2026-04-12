@@ -81,18 +81,11 @@ function ChatContent() {
   return (
     <div style={{ backgroundColor: 'white', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', sans-serif" }}>
 
-      {/* ── TOP NAVBAR — MOBILE ── */}
-      <div className="flex md:hidden" style={{ backgroundColor: 'white', padding: '16px 20px', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #eee', position: 'sticky', top: 0, zIndex: 10 }}>
-        <img src="/latrobe-logo.png" alt="La Trobe" style={{ height: '90px', objectFit: 'contain' }} />
-        <p style={{ fontSize: '13px', fontWeight: '500', color: '#444', margin: '4px 0 8px 0', textAlign: 'center' }}>Policy Chatbot</p>
-        <div style={{ height: '3px', backgroundColor: '#C8102E', width: '70%', borderRadius: '2px' }} />
-      </div>
-
       {/* ── TOP NAVBAR — DESKTOP ── */}
       <div className="hidden md:flex" style={{ backgroundColor: 'white', padding: '16px 60px', alignItems: 'center', gap: '24px', borderBottom: '1px solid #eee', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flexShrink: 0 }}>
-          <img src="/latrobe-logo.png" alt="La Trobe" style={{ height: '90px', objectFit: 'contain' }} />
-          <p style={{ fontSize: '13px', fontWeight: '500', color: '#444', margin: '4px 0 0 0' }}>Policy Chatbot</p>
+          <img src="/latrobe-logo.png" alt="La Trobe" style={{ height: '80px', objectFit: 'contain' }} />
+          <p style={{ fontSize: '12px', fontWeight: '500', color: '#444', margin: '2px 0 0 0', paddingLeft: '4px' }}>Policy Chatbot</p>
         </div>
         <div style={{ flex: 1, margin: '0 16px' }}>
           <div style={{ border: '3px solid #C8102E', borderRadius: '8px', padding: '14px 24px', fontSize: '18px', fontWeight: '700', color: '#1a1a1a' }}>
@@ -104,13 +97,21 @@ function ChatContent() {
         </div>
       </div>
 
+      {/* ── TOP NAVBAR — MOBILE ── */}
+      <div className="flex md:hidden" style={{ backgroundColor: 'white', padding: '16px 20px', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #eee', position: 'sticky', top: 0, zIndex: 10 }}>
+        <img src="/latrobe-logo.png" alt="La Trobe" style={{ height: '90px', objectFit: 'contain' }} />
+        <p style={{ fontSize: '13px', fontWeight: '500', color: '#444', margin: '4px 0 8px 0', textAlign: 'center' }}>Policy Chatbot</p>
+        <div style={{ height: '3px', backgroundColor: '#C8102E', width: '70%', borderRadius: '2px' }} />
+      </div>
+
+      
       {/* ── MAIN LAYOUT ── */}
-      <div style={{ display: 'flex', flex: 1, width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '24px 60px', gap: '24px', paddingBottom: '100px', backgroundColor: 'white' }}>
+      <div style={{ display: 'flex', flex: 1, width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '24px 60px', gap: '24px', paddingBottom: '100px' }}>
 
         {/* ── SIDEBAR — desktop only ── */}
         <div className="hidden md:flex" style={{ width: '315px', flexShrink: 0, backgroundColor: 'white', borderRadius: '12px', border: '2.5px solid #C8102E', padding: '24px 20px', flexDirection: 'column', gap: '16px', height: 'fit-content' }}>
           <div style={{ textAlign: 'center' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1a1a1a', margin: '0 0 8px 0' }}>Chat History</h2>
+            <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1a1a1a', margin: '0 0 8px 0', fontFamily: "'DM Sans', sans-serif" }}>Chat History</h2>
             <div style={{ height: '2px', backgroundColor: '#C8102E', width: '60%', margin: '0 auto' }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
@@ -136,15 +137,15 @@ function ChatContent() {
         </div>
 
         {/* ── CHAT PANEL ── */}
-        <div className="md:border-2 md:border-[#a0a0a0] md:rounded-xl" style={{ flex: 1, backgroundColor: 'white', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: '680px' }}>
+        <div className="md:border-[2px] md:border-[#a0a0a0] md:shadow-md" style={{ flex: 1, backgroundColor: 'white', borderRadius: '12px', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: '680px' }}>
 
           {/* Disclaimer */}
-          <div style={{ backgroundColor: '#fff8e1', borderBottom: '1px solid #ffe082', padding: '8px 24px' }}>
+          <div style={{ backgroundColor: '#fff8e1', borderBottom: '1px solid #ffe082', padding: '8px 20px' }}>
             <span style={{ fontSize: '12px', color: '#7a6000' }}>⚠️ Responses are based on official La Trobe policy documents. For legal advice, contact university staff.</span>
           </div>
 
           {/* Messages */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {messages.map((msg) => (
               <div key={msg.id}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start', gap: '10px' }}>
@@ -168,6 +169,7 @@ function ChatContent() {
                     </div>
                   )}
                 </div>
+                {/* Source Citations */}
                 {msg.sources && (
                   <div style={{ marginLeft: msg.sender === 'bot' ? '42px' : '0', marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start' }}>
                     {msg.sources.map((source, si) => (
@@ -180,6 +182,7 @@ function ChatContent() {
               </div>
             ))}
 
+            {/* Loading Dots */}
             {loading && (
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
                 <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#CB0101', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
