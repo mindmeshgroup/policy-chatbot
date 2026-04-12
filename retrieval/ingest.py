@@ -6,9 +6,9 @@ import hashlib
 from urllib.parse import urlparse, parse_qs, urljoin
 from bs4 import BeautifulSoup
 from docling.document_converter import DocumentConverter
-from utils.metadata_factory import extract_metadata_and_chunk
-from utils.vector_engine import clean_and_upsert
-from utils.crawler import get_all_policy_links, get_raw_html
+from retrieval.utils.metadata_factory import extract_metadata_and_chunk
+from retrieval.utils.vector_engine import clean_and_upsert
+from retrieval.utils.crawler import get_all_policy_links, get_raw_html
 
 # CONFIGURATION 
 COLLECTION_NAME = "university_policies"
