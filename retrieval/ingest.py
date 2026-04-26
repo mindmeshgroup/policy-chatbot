@@ -3,12 +3,13 @@ import tempfile
 import json
 import requests
 import hashlib
+import asyncio  
 from urllib.parse import urlparse, parse_qs, urljoin
 from bs4 import BeautifulSoup
 from docling.document_converter import DocumentConverter
 from retrieval.utils.metadata_factory import extract_metadata_and_chunk
 from retrieval.utils.vector_engine import clean_and_upsert
-from retrieval.utils.crawler import get_all_policy_links, get_raw_html
+from retrieval.utils.crawler import get_all_policy_links, _fetch_html
 
 # CONFIGURATION 
 COLLECTION_NAME = "university_policies"
@@ -66,15 +67,19 @@ def parse_document_title(source: str) -> str:
     title = name.replace('-', ' ').replace('_', ' ').title()
     return title if title and title.lower() != 'view' else "Unknown Document"
 
-def process_and_store(source: str, is_web: bool, converter: DocumentConverter):
+
+async def async_process_and_store(source: str, is_web: bool, converter: DocumentConverter):
     temp_title = parse_document_title(source)
     try:
         if is_web and not source.lower().endswith('.pdf'):
             print(f"   Fetching Main Policy: {temp_title}...")
-            raw_html_string = get_raw_html(source)
+            
+            # parallel async fetch of webpage
+            raw_html_string = await _fetch_html(source)
+            if not raw_html_string: return False # Skip if fault isolated
+            
             soup = BeautifulSoup(raw_html_string, 'html.parser')
             
-            # Dynamic Scouting
             metadata_url = None
             for a_tag in soup.find_all('a', href=True):
                 if "status and details" in a_tag.text.lower():
@@ -83,15 +88,16 @@ def process_and_store(source: str, is_web: bool, converter: DocumentConverter):
             
             if metadata_url:
                 print(f"    Fetching  Metadata: {metadata_url}...")
-                meta_html = get_raw_html(metadata_url)
-                meta_soup = BeautifulSoup(meta_html, 'html.parser')
-                meta_content = meta_soup.find('div', class_='document-content') or meta_soup.find('table')
-                
-                if meta_content:
-                    header = soup.new_tag("h1")
-                    header.string = "Status and Details Table"
-                    soup.body.append(header)
-                    soup.body.append(meta_content)
+                meta_html = await _fetch_html(metadata_url)
+                if meta_html:
+                    meta_soup = BeautifulSoup(meta_html, 'html.parser')
+                    meta_content = meta_soup.find('div', class_='document-content') or meta_soup.find('table')
+                    
+                    if meta_content:
+                        header = soup.new_tag("h1")
+                        header.string = "Status and Details Table"
+                        soup.body.append(header)
+                        soup.body.append(meta_content)
             
             combined_html = str(soup)
             with tempfile.NamedTemporaryFile(delete=False, suffix=".html", mode="w", encoding="utf-8") as temp_file:
@@ -124,8 +130,14 @@ def process_and_store(source: str, is_web: bool, converter: DocumentConverter):
         print(f"    Error processing {temp_title}: {e}")
         return False
 
+
+def process_and_store(source: str, is_web: bool, converter: DocumentConverter):
+    """Synchronous wrapper for Options 1 and 3 to utilize the async logic seamlessly."""
+    return asyncio.run(async_process_and_store(source, is_web, converter))
+
+
 def run_web_ingestion(converter):
-    print(f"\n---  WEB CRAWL MODE ---")
+    print(f"\n---  WEB CRAWL MODE (PARALLEL) ---")
     all_links = get_all_policy_links(WEB_HUB_URL)
     
     target_urls = [url for url in all_links if "/document/view.php?id=" in url]
@@ -133,34 +145,54 @@ def run_web_ingestion(converter):
     if not target_urls:
         return print("No policy links found.")
 
-    # FULL SCRAPE: Process ALL discovered policies
-    test_urls = sorted(list(set(target_urls)))
-    print(f"   Scouted {len(target_urls)} policy links. Processing ALL documents...")
-
-    # Load the CDC Ledger
+    # TRACER BULLET LIMIT
+    test_urls = sorted(list(set(target_urls)))[:10]
     ledger = load_ledger()
-    processed_count = 0
-
+    
+    if not ledger:
+        print(f"   [!] No existing {LEDGER_FILE} found. A new one will be created.")
+        print(f"   [!] Fetching initial metadata for {len(test_urls)} policies. This will take a moment...")
+    else:
+        print(f"   Checking CDC Ledger for {len(test_urls)} policies...")
+    
+    # 1. Sequential Check: Find out what actually needs updating
+    links_to_process = []
     for i, url in enumerate(test_urls):
         print(f"\n[{i+1}/{len(test_urls)}] ------------------------------")
         
-        # Check the Ledger before doing any expensive work
         needs_update, modified_date = check_if_updated(url, ledger)
-        
         if not needs_update:
             print(f"    SKIPPING: Already up to date ({url})")
             continue
             
-        # If new or updated, run ingestion logic
-        success = process_and_store(url, is_web=True, converter=converter)
-        
-        # If successful, write it to the ledger so we don't process it again tomorrow
-        if success:
+        print(f"    QUEUED FOR UPDATE: {url}")
+        links_to_process.append((url, modified_date))
+            
+    if not links_to_process:
+        return print("\n All policies up to date.")
+
+    print(f"\n   Launching Parallel Tasks for {len(links_to_process)} documents...")
+
+    # parallel upgrade
+    async def process_batch():
+        tasks = [async_process_and_store(url, is_web=True, converter=converter) for url, _ in links_to_process]
+        # FAULT ISOLATION: gather with return_exceptions=True ensures one crash won't halt the rest
+        return await asyncio.gather(*tasks, return_exceptions=True)
+
+    # trigger the parallel batch
+    results = asyncio.run(process_batch())
+
+    # 3. Post-Process Ledger Updates
+    processed_count = 0
+    for i, result in enumerate(results):
+        if result is True: # Only update ledger if successful
+            url, modified_date = links_to_process[i]
             ledger[url] = modified_date
             save_ledger(ledger)
             processed_count += 1
             
     print(f"\n Batch Complete. Successfully ingested {processed_count} new/updated policies.")
+
 
 def run_local_ingestion(converter):
     print(f"\n---  LOCAL BATCH MODE ---")
