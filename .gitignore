@@ -34,6 +34,13 @@ node_modules/
 # --- Qdrant Vector Database Storage ---
 qdrant_storage/
 
-# --- Temporary Parsing Outputs ---
+# --- Ingestion & Local Data ---
+ingestion_ledger.json
+policy_pdfs/
+
+# --- Temporary Parsing Outputs & Scratchpads ---
 *.md
+!RETRIEVAL_DOCS.md
 !README.md
+test_output.md
+check_tables.py
