@@ -120,14 +120,7 @@ def cpu_bound_conversion_and_storage(source: str, is_web: bool, html_content: st
             return True, source, msg
 
         payloads = extract_metadata_and_chunk(result.document, source_path=source)
-        # --- TEMPORARY DEBUG PRINT FOR EXCEPTION TAGGING ---
-        for p in payloads:
-            if p["is_exception"]:
-                print(f"\nCRAG EXCEPTION DETECTED 🚨")
-                print(f"Location: {p['breadcrumb']}")
-                print(f"Text: {p['content']}")
-                print("-" * 60)
-        # ---------------------------------------------------
+        
         if not payloads:
             msg = f"[UNPROCESSABLE]: Skipped {temp_title} (Failed to chunk)"
             print(f"{doc_tracker} Error:  {msg}")
@@ -152,7 +145,7 @@ def run_web_ingestion():
     if not target_urls:
         return print("No policy links found.")
 
-    test_urls = sorted(list(set(target_urls)))[:10]
+    test_urls = sorted(list(set(target_urls)))
     ledger = get_all_states()
     
     print(f"   Running Parallel CDC Check for {len(test_urls)} policies...")
