@@ -71,7 +71,7 @@ function ChatContent() {
         id: prev.length + 1,
         sender: 'bot',
         text: data.answer || 'No answer found.',
-        sources: data.sources || []
+        sources: data.citations || []
       }]);
     } catch (error) {
       setMessages(prev => [...prev, {

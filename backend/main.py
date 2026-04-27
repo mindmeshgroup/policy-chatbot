@@ -23,10 +23,9 @@ app.state.limiter = limiter
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-    "http://localhost:3000",
-    "http://127.0.0.1:3000"]
-     
-    # You can restrict later (e.g., ["http://localhost:3000"])
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,14 +34,10 @@ app.add_middleware(
 # Include routes
 app.include_router(ask_router)
 
-
 # Root endpoint
 @app.get("/")
 def root():
     return RedirectResponse(url='docs')
-       
-        
-           
 
 # Health check endpoint
 @app.get("/health")
