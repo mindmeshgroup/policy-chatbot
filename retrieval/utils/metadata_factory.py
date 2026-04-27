@@ -9,7 +9,7 @@ from docling.chunking import HierarchicalChunker
 EXTRACTOR_MODEL = "llama3"   
 
 def standardize_date(date_str):
-    """Handles Australian suffixes and Year-Only fallbacks."""
+    """Handles  Year-Only fallbacks."""
     if not date_str or str(date_str).lower() in ["none", "null", "unknown", "not specified"]: 
         return None
     try:
@@ -150,8 +150,11 @@ def extract_metadata_and_chunk(docling_document, source_path: str):
     iso_rev = standardize_date(llm_data.get("review_date"))
     enquiries = llm_data.get("enquiries_contact") or "University Administration"
 
-    # 5. DETERMINISTIC EXCEPTION FLAG
-    exception_pattern = re.compile(r'\b(except\b|unless\b|provided that\b|notwithstanding\b|subject to\b)', re.IGNORECASE)
+    # 5. STRICT EXCEPTION DETECTION (CRAG Upgrade)
+    strict_exception_pattern = re.compile(
+        r'\b(unless|except|provided that|notwithstanding|subject to|exempt from|waive the requirement|does not apply to)\b',
+        re.IGNORECASE
+    )
 
     # 6. METADATA INHERITANCE & SECTION TRACKING
     chunks_payload = []
@@ -161,6 +164,15 @@ def extract_metadata_and_chunk(docling_document, source_path: str):
         breadcrumb = f"{document_title} > " + " > ".join(header_path) if header_path else document_title
         breadcrumb_lower = breadcrumb.lower()
         is_real_table = any("table" in str(getattr(item, "label", "")).lower() for item in getattr(chunk.meta, "doc_items", []))
+
+        # --- NEW CRAG TAGGING LOGIC ---
+        # 1. Structural Audit: Checks the Docling breadcrumbs for explicit override sections
+        is_structural_exception = any(word in breadcrumb_lower for word in ["exclusion", "exemption", "exception", "waiver", "special consideration"])
+        # 2. Linguistic Audit: Checks the text for strict override markers
+        is_text_exception = bool(strict_exception_pattern.search(text))
+        
+        chunk_is_exception = is_structural_exception or is_text_exception
+        # ------------------------------
 
         chunk_specific_cohorts = set(global_cohorts)
         if "Quarantined" not in global_cohorts:
@@ -176,7 +188,7 @@ def extract_metadata_and_chunk(docling_document, source_path: str):
         chunks_payload.append({
             "content": f"[{breadcrumb}]\n{text}", 
             "has_table": is_real_table, 
-            "is_exception": bool(exception_pattern.search(text)), 
+            "is_exception": chunk_is_exception, 
             "document_title": document_title,
             "source_url": source_path, 
             "enquiries_contact": enquiries,
