@@ -84,12 +84,11 @@ def initialise_database():
         field_name="effective_date_iso",
         field_schema=DatetimeIndexParams(
             type="datetime",
-            on_disk=True,
-            is_principal=True
+            on_disk=True
         )
     )
     
-    print(f"Database successfully initialised with Quantization and Payload Indices.")
+    print(f"Database successfully initialised with Quantisation and Payload Indices.")
 
 if __name__ == "__main__":
     initialise_database()
