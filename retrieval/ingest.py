@@ -145,7 +145,7 @@ def run_web_ingestion():
     if not target_urls:
         return print("No policy links found.")
 
-    test_urls = sorted(list(set(target_urls)))[:20]
+    test_urls = sorted(list(set(target_urls)))
     ledger = get_all_states()
     
     print(f"   Running Parallel CDC Check for {len(test_urls)} policies...")
