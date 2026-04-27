@@ -145,7 +145,7 @@ def run_web_ingestion():
     if not target_urls:
         return print("No policy links found.")
 
-    test_urls = sorted(list(set(target_urls)))
+    test_urls = sorted(list(set(target_urls)))[:20]
     ledger = get_all_states()
     
     print(f"   Running Parallel CDC Check for {len(test_urls)} policies...")
@@ -154,14 +154,16 @@ def run_web_ingestion():
         return await asyncio.gather(*tasks)
 
     cdc_results = asyncio.run(parallel_cdc())
-    
     links_to_process = []
     modified_dates_dict = {}
     for needs_update, url, modified_date in cdc_results:
         if needs_update:
             links_to_process.append(url)
             modified_dates_dict[url] = modified_date
-            
+        else:
+            doc_title = parse_document_title(url)
+            print(f"[SKIPPED] {doc_title} | {url} (No changes detected)")
+    
     if not links_to_process:
         return print("\n  All policies up to date.")
 
@@ -249,8 +251,14 @@ def run_local_ingestion():
     
     files = [f for f in os.listdir(LOCAL_FOLDER) if f.lower().endswith(('.pdf', '.html'))]
     ledger = get_all_states()
-    
-    pending_files = [f for f in files if os.path.join(LOCAL_FOLDER, f) not in ledger]
+    pending_files = []
+    for f in files:
+        source_path = os.path.join(LOCAL_FOLDER, f)
+        if source_path not in ledger:
+            pending_files.append(f)
+        else:
+            doc_title = parse_document_title(source_path)
+            print(f"[SKIPPED] {doc_title} (Already in ledger)")
     total = len(pending_files)
     
     if total == 0:
