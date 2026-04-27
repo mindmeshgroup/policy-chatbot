@@ -142,8 +142,8 @@ def extract_metadata_and_chunk(docling_document, source_path: str):
 
     global_cohorts = [r for r in final_set if r in ALL_ROLES]
     if not global_cohorts: 
-        print(f"      [QUARANTINE ALERT] No valid roles. '{document_title}' hidden.")
-        global_cohorts = ["Quarantined"]
+        print(f"      [FALLBACK APPLIED] No specific roles found for '{document_title}'. Defaulting to Universal Access.")
+        global_cohorts = ALL_ROLES.copy()
 
     # Normalize Dates
     iso_eff = standardize_date(llm_data.get("effective_date"))
@@ -172,19 +172,19 @@ def extract_metadata_and_chunk(docling_document, source_path: str):
         is_text_exception = bool(strict_exception_pattern.search(text))
         
         chunk_is_exception = is_structural_exception or is_text_exception
-        # ------------------------------
-
         chunk_specific_cohorts = set(global_cohorts)
-        if "Quarantined" not in global_cohorts:
-            if any(word in breadcrumb_lower for word in ["staff", "admin", "employee", "processing"]):
-                chunk_specific_cohorts.update(["Academic", "Professional"])
-            if any(word in breadcrumb_lower for word in ["student", "candidate", "learner"]):
-                chunk_specific_cohorts.update(["Undergrad", "Postgrad", "HDR", "International"])
-            if "hdr" in breadcrumb_lower or "doctoral" in breadcrumb_lower:
-                chunk_specific_cohorts.update(["HDR", "Academic"])
+        
+        # Breadcrumb-based inheritance (dynamically adds roles to specific subsections)
+        if any(word in breadcrumb_lower for word in ["staff", "admin", "employee", "processing"]):
+            chunk_specific_cohorts.update(["Academic", "Professional"])
+        if any(word in breadcrumb_lower for word in ["student", "candidate", "learner"]):
+            chunk_specific_cohorts.update(["Undergrad", "Postgrad", "HDR", "International"])
+        if "hdr" in breadcrumb_lower or "doctoral" in breadcrumb_lower:
+            chunk_specific_cohorts.update(["HDR", "Academic"])
 
-        chunk_final_roles = list(chunk_specific_cohorts) if "Quarantined" not in global_cohorts else ["Quarantined"]
+        chunk_final_roles = list(chunk_specific_cohorts)
 
+        
         chunks_payload.append({
             "content": f"[{breadcrumb}]\n{text}", 
             "has_table": is_real_table, 
