@@ -54,19 +54,28 @@ def retrieve_policies(question: str, role: str = "Student", max_k: int = 3) -> L
         )
 
     # 4. HYBRID DATABASE SEARCH (RRF FUSION)
+   # 4. HYBRID DATABASE SEARCH (RRF FUSION)
     try:
         results = client.query_points(
             collection_name=COLLECTION_NAME,
             prefetch=[
-                # Track 1: Semantic Dense Search
+                # Track 1: Semantic Dense Search (Now Quantization-Aware)
                 models.Prefetch(
                     query=dense_vector,
                     using="text-dense",
                     filter=query_filter,
                     limit=max_k * 2,
-                    score_threshold=0.30 # Kills irrelevant queries before fusion
+                    score_threshold=0.30, # removes irrelevant queries before fusion
+                    # Rescoring and oversampling to maintain accuracy with INT8 compression
+                    params=models.SearchParams(
+                        quantization=models.QuantizationSearchParams(
+                            ignore=False,
+                            rescore=True,
+                            oversampling=3.0
+                        )
+                    )
                 ),
-                # Track 2: Lexical Sparse Search
+                # Track 2: Lexical Sparse Search (Unchanged)
                 models.Prefetch(
                     query=sparse_vector_obj,
                     using="text-sparse",
