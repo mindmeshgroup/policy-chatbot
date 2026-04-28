@@ -19,9 +19,9 @@ def write_log(log_data: dict):
 
 @router.post("/ask", response_model=ChatResponse)
 @limiter.limit("10/minute")
-async def ask_question(request: ChatRequest):
+async def ask_question(api_request: Request , request : ChatRequest):
     start_time = time.time()
-
+ 
     try:
         question = request.question
         role = request.role
