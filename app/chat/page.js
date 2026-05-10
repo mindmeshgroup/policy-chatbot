@@ -254,34 +254,61 @@ function ChatContent() {
                   )}
                 </div>
 
-                {/* Source Citations */}
-                {msg.sources && msg.sources.length > 0 && (
-                  <div style={{ marginLeft: msg.sender === 'bot' ? '42px' : '0', marginTop: '8px', display: 'flex', flexDirection: 'column', alignItems: msg.sender === 'user' ? 'flex-end' : 'flex-start', gap: '6px' }}>
-                    <span style={{ fontSize: '10px', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Sources</span>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start' }}>
+                {/* Source Citations — bot messages only */}
+                {msg.sender === 'bot' && msg.sources && msg.sources.length > 0 && (
+                  <div style={{ marginLeft: '42px', marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <span style={{ fontSize: '10px', fontWeight: '700', color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Sources</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {msg.sources.map((source, si) => (
-                        <a
-                          key={si}
-                          href={source.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label={`Open policy document: ${source.title} (opens in new tab)`}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: '500', color: '#C8102E', backgroundColor: '#fff0f0', border: '1px solid rgba(200,16,46,0.25)', borderRadius: '12px', padding: '4px 10px', textDecoration: 'none', fontFamily: "'DM Sans', sans-serif", outline: 'none' }}
-                          onMouseOver={e => e.currentTarget.style.backgroundColor = '#ffe0e5'}
-                          onMouseOut={e => e.currentTarget.style.backgroundColor = '#fff0f0'}
-                          onFocus={e => e.currentTarget.style.boxShadow = '0 0 0 3px rgba(200,16,46,0.3)'}
-                          onBlur={e => e.currentTarget.style.boxShadow = 'none'}
-                        >
-                          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true" style={{ flexShrink: 0 }}>
-                            <path d="M2 1.5A.5.5 0 0 1 2.5 1h5l2.5 2.5V10.5a.5.5 0 0 1-.5.5h-7a.5.5 0 0 1-.5-.5v-9Z" stroke="currentColor" strokeWidth="1" fill="none" />
-                            <path d="M7.5 1v2.5H10" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-                            <path d="M4 6h4M4 7.5h2.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-                          </svg>
-                          <span style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{source.title}</span>
-                          <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden="true" style={{ flexShrink: 0, opacity: 0.5 }}>
-                            <path d="M5.5 1.5H8.5V4.5M8.5 1.5L4.5 5.5M3 2.5H1.5V8.5H7.5V7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </a>
+                        <div key={si}>
+                          <a
+                            href={source.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Open policy document: ${source.title} (opens in new tab)`}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              fontSize: '11px',
+                              fontWeight: '600',
+                              color: 'white',
+                              backgroundColor: '#C8102E',
+                              borderRadius: '999px',
+                              padding: '4px 12px',
+                              textDecoration: 'none',
+                              fontFamily: "'DM Sans', sans-serif",
+                              outline: 'none',
+                              boxShadow: 'none',
+                              transition: 'background-color 0.15s',
+                            }}
+                            onMouseOver={e => e.currentTarget.style.backgroundColor = '#a00d24'}
+                            onMouseOut={e => e.currentTarget.style.backgroundColor = '#C8102E'}
+                            onFocus={e => e.currentTarget.style.boxShadow = '0 0 0 3px rgba(200,16,46,0.4)'}
+                            onBlur={e => e.currentTarget.style.boxShadow = 'none'}
+                          >
+                            <span style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{source.title}</span>
+                            <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden="true" style={{ flexShrink: 0, opacity: 0.8 }}>
+                              <path d="M5.5 1.5H8.5V4.5M8.5 1.5L4.5 5.5M3 2.5H1.5V8.5H7.5V7" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </a>
+                          {source.excerpt && (
+                            <p style={{
+                              margin: '4px 4px 0 4px',
+                              fontSize: '11px',
+                              fontStyle: 'italic',
+                              color: '#999',
+                              lineHeight: '1.4',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              fontFamily: "'DM Sans', sans-serif",
+                            }}>
+                              {source.excerpt}
+                            </p>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>
