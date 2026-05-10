@@ -2,24 +2,26 @@
 Sprint 3 — Task 1: Strengthen Hallucination Guardrails
 Sprint 3 — Task 2: Strengthen "No Policy Found" Fallback Response
 
-This module replaces/upgrades the Sprint 1 prompt_logic.py with:
-  - Tighter grounding directives in the system prompt
-  - A post-generation keyword-overlap validator
-  - Improved, escalation-aware fallback messages
-  - Adversarial query detection
+ARCHITECTURE FIX (Sprint 4 integration):
+  This module is now designed to work with the integrated backend flow:
+    Frontend → Backend /ask → Vaidehi Retrieval → generate_answer() → Backend Response
+
+  It no longer owns retrieval. It accepts Vaidehi's dict-format chunks:
+    chunk["content"], chunk["document_title"], chunk["source_url"],
+    chunk["chunk_id"], chunk["is_exception"]
+
+  Output format matches backend contract:
+    {"answer": str, "used_sources": list[str]}
 """
 
-from langchain_core.prompts import ChatPromptTemplate
-
 # ── Version tracking ────────────────────────────────────────────────────────────
-PROMPT_VERSION = "v3.0"
+PROMPT_VERSION = "v3.1"
 
-# ── Sprint 3 hardened prompt ────────────────────────────────────────────────────
-# Changes from Sprint 1:
-#  • Added "STRICT GROUNDING RULES" block (new)
-#  • Added "FORBIDDEN BEHAVIOURS" block (new)
-#  • Added escalation instruction in fallback (new)
-#  • Citation format enforced more explicitly (tightened)
+# ── Sprint 3 hardened prompt (updated for integrated architecture) ───────────────
+# Changes from v3.0:
+#  • Removed citation-writing instruction — backend handles citations from metadata
+#  • Added exception-chunk awareness (is_exception flag)
+#  • Context block now uses document_title/source_url from Vaidehi's retrieval format
 
 RAG_TEMPLATE = """
 You are the La Trobe University Policy Assistant.
@@ -36,6 +38,8 @@ STRICT GROUNDING RULES — READ BEFORE ANSWERING
    copied verbatim from the context — never estimated.
 4. NO COMBINING: Do not combine unrelated context chunks to construct
    an answer that no single source supports.
+5. EXCEPTION CHUNKS: Any chunk marked [EXCEPTION] describes a specific
+   override or special case. Treat it as higher priority than general rules.
 
 FORBIDDEN BEHAVIOURS (will be detected and flagged):
 ✗ Making up policy rules, dates, or figures not found in the context
@@ -43,6 +47,7 @@ FORBIDDEN BEHAVIOURS (will be detected and flagged):
   appears in the source text
 ✗ Speculating about what a policy "might" mean
 ✗ Answering a question that is not addressed in the context at all
+✗ Writing source filenames, URLs, or page numbers — the system handles citations
 
 ══════════════════════════════════════════════════════════════════
 FALLBACK RULE (when context does not contain the answer)
@@ -55,13 +60,6 @@ the question, respond with EXACTLY this message (no additions):
    • La Trobe University Policy team: policy@latrobe.edu.au
    • Student Services: studentservices@latrobe.edu.au
    • Your faculty's Student Administration office"
-
-══════════════════════════════════════════════════════════════════
-CITATION RULE
-══════════════════════════════════════════════════════════════════
-At the end of every answer (except fallbacks), list ALL sources used:
-  Format: Sources: [Filename], Page [Number]
-  If page number is unavailable, write: Sources: [Filename], Section: [Section Name]
 
 ══════════════════════════════════════════════════════════════════
 CONTEXT
@@ -78,35 +76,64 @@ ANSWER
 ══════════════════════════════════════════════════════════════════
 """
 
-prompt_template = ChatPromptTemplate.from_template(RAG_TEMPLATE)
-
 
 # ── Context Formatter ───────────────────────────────────────────────────────────
 
+def format_chunks_for_prompt(chunks: list[dict]) -> str:
+    """
+    Converts Vaidehi's retrieval dict format into a labelled context block.
+
+    Expected chunk fields:
+        chunk["content"]         — the policy text
+        chunk["document_title"]  — source document name
+        chunk["source_url"]      — URL of the policy page
+        chunk["chunk_id"]        — unique identifier
+        chunk["is_exception"]    — True if this is an exception/override chunk
+    """
+    if not chunks:
+        return ""
+
+    formatted = []
+    for i, chunk in enumerate(chunks):
+        title     = chunk.get("document_title", "Unknown Document")
+        url       = chunk.get("source_url", "N/A")
+        chunk_id  = chunk.get("chunk_id", f"chunk_{i+1}")
+        is_exc    = chunk.get("is_exception", False)
+        content   = chunk.get("content", "")
+
+        label = "[EXCEPTION] " if is_exc else ""
+        header = (
+            f"[CHUNK {i+1}] {label}"
+            f"DOCUMENT: {title} | "
+            f"URL: {url} | "
+            f"ID: {chunk_id}"
+        )
+        formatted.append(f"{header}\n{content}")
+
+    return "\n\n---\n\n".join(formatted)
+
+
+# ── Kept for backward compatibility with test_generation.py ────────────────────
+
 def format_docs_with_metadata(docs: list) -> str:
     """
-    Converts retrieved LangChain Document objects into a clearly labelled
-    context block the LLM can reason over.
+    Legacy helper for LangChain Document objects.
+    Only used by test_generation.py (Sprint 2 standalone test).
+    Do NOT call this from generate_answer().
     """
     if not docs:
         return ""
-
-    formatted_chunks = []
+    formatted = []
     for i, doc in enumerate(docs):
         source_file = doc.metadata.get("source", "Unknown File")
         breadcrumb  = doc.metadata.get("breadcrumb", "General Document")
         page_num    = doc.metadata.get("page", "N/A")
-        audience    = doc.metadata.get("audience", "Unknown")
-        category    = doc.metadata.get("category", "Unknown")
-
         header = (
             f"[CHUNK {i+1}] SOURCE: {source_file} | "
-            f"PAGE: {page_num} | SECTION: {breadcrumb} | "
-            f"AUDIENCE: {audience} | CATEGORY: {category}"
+            f"PAGE: {page_num} | SECTION: {breadcrumb}"
         )
-        formatted_chunks.append(f"{header}\n{doc.page_content}")
-
-    return "\n\n---\n\n".join(formatted_chunks)
+        formatted.append(f"{header}\n{doc.page_content}")
+    return "\n\n---\n\n".join(formatted)
 
 
 # ── Post-generation Hallucination Validator ─────────────────────────────────────
@@ -120,55 +147,48 @@ FALLBACK_MARKERS = [
 HALLUCINATION_RISK_PHRASES = [
     "typically", "usually", "generally", "often", "in most cases",
     "it is expected", "it is assumed", "should be", "would be",
-    "as far as I know", "I believe", "probably", "possibly",
+    "as far as I know", "i believe", "probably", "possibly",
 ]
 
 
-def validate_response(answer: str, retrieved_docs: list) -> dict:
+def validate_response(answer: str, chunks: list[dict]) -> dict:
     """
-    Post-generation check comparing the answer against the retrieved chunks.
+    Post-generation grounding check using Vaidehi's dict-format chunks.
 
-    Returns a report dict:
+    Returns:
       {
         "is_fallback": bool,
         "risk_phrases_found": list[str],
-        "keyword_overlap_score": float,   # 0.0 – 1.0
+        "keyword_overlap_score": float,
         "flagged": bool,
         "flag_reason": str
       }
     """
     answer_lower = answer.lower()
 
-    # Check if it's a fallback response
     is_fallback = any(m in answer_lower for m in FALLBACK_MARKERS)
     if is_fallback:
         return {
             "is_fallback": True,
             "risk_phrases_found": [],
-            "keyword_overlap_score": 1.0,  # fallback is always "grounded"
+            "keyword_overlap_score": 1.0,
             "flagged": False,
             "flag_reason": "",
         }
 
-    # Detect suspicious hedging language
     risk_phrases_found = [p for p in HALLUCINATION_RISK_PHRASES if p in answer_lower]
 
-    # Keyword overlap check: what % of non-trivial words in the answer
-    # also appear in the retrieved context?
     stopwords = {"the", "a", "an", "is", "are", "was", "were", "in", "of",
                  "to", "and", "or", "for", "with", "on", "at", "by", "be",
                  "it", "this", "that", "as", "not", "no", "if", "from"}
 
-    context_blob = " ".join(doc.page_content.lower() for doc in retrieved_docs)
+    # Use chunk["content"] from dict format
+    context_blob = " ".join(c.get("content", "").lower() for c in chunks)
     context_words = set(context_blob.split()) - stopwords
 
     answer_words = set(answer_lower.split()) - stopwords
-    if answer_words:
-        overlap = len(answer_words & context_words) / len(answer_words)
-    else:
-        overlap = 0.0
+    overlap = len(answer_words & context_words) / len(answer_words) if answer_words else 0.0
 
-    # Flag if overlap is low OR risky phrases found
     LOW_OVERLAP_THRESHOLD = 0.40
     flagged = overlap < LOW_OVERLAP_THRESHOLD or len(risk_phrases_found) > 0
     flag_reason = ""
@@ -189,7 +209,6 @@ def validate_response(answer: str, retrieved_docs: list) -> dict:
 # ── Adversarial Query Detector ──────────────────────────────────────────────────
 
 ADVERSARIAL_PATTERNS = [
-    # Leading / false-premise patterns
     "i heard that la trobe",
     "isn't it true that",
     "confirm that la trobe",
@@ -203,37 +222,32 @@ ADVERSARIAL_PATTERNS = [
     "forget the rules",
 ]
 
+
 def is_adversarial(query: str) -> bool:
     """Returns True if the query looks like it might be trying to elicit hallucination."""
     q = query.lower()
     return any(pattern in q for pattern in ADVERSARIAL_PATTERNS)
 
 
-# ── Main entry-point used by chatbot ───────────────────────────────────────────
+# ── Main guardrail wrapper used by generate_answer ─────────────────────────────
 
-def build_guardrailed_response(query: str, retrieved_docs: list, raw_answer: str) -> dict:
+def build_guardrailed_response(query: str, chunks: list[dict], raw_answer: str) -> dict:
     """
     Combines the raw LLM answer with guardrail checks.
+    Uses Vaidehi's dict-format chunks (not LangChain Documents).
 
-    Returns:
-      {
-        "answer": str,
-        "validation": dict,
-        "adversarial_warning": bool,
-        "sources": list[str],
-      }
+    Returns the internal validation report — NOT the final backend response.
+    The final backend response is built in generate_answer().
     """
     adversarial = is_adversarial(query)
-    validation  = validate_response(raw_answer, retrieved_docs)
-    sources     = list({
-        d.metadata.get("source", "Unknown") for d in retrieved_docs
-    })
+    validation  = validate_response(raw_answer, chunks)
+    used_sources = [c.get("chunk_id", "unknown") for c in chunks]
 
     return {
         "answer": raw_answer,
         "validation": validation,
         "adversarial_warning": adversarial,
-        "sources": sources,
+        "used_sources": used_sources,
     }
 
 
