@@ -1,108 +1,172 @@
+"""
+Generation Layer — chatbot.py
+Sprint 3 / Sprint 4 Integration
+
+ARCHITECTURE:
+  This module is the generation layer in the integrated chatbot system.
+  It does NOT retrieve data. The backend calls it after retrieval:
+
+    Backend /ask endpoint:
+        chunks = await retrieve_policies(question, role)   # Vaidehi's layer
+        result = generate_answer(question, chunks)         # this file
+
+PUBLIC API:
+    generate_answer(question: str, chunks: list[dict], role: str = "student") -> dict
+
+    Returns:
+        {
+          "answer": str,
+          "used_sources": list[str],   # chunk_ids from Vaidehi's retrieval
+        }
+
+    Chunk format (from Vaidehi's retrieval):
+        chunk["content"]         — policy text
+        chunk["document_title"]  — source document name
+        chunk["source_url"]      — URL of the policy page
+        chunk["chunk_id"]        — unique identifier
+        chunk["is_exception"]    — True if this is an exception/override chunk
+"""
+
 import os
 from dotenv import load_dotenv
-
-from langchain.vectorstores import Chroma
-from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.chat_models import ChatOpenAI
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
+from openai import OpenAI
 
 from prompt_logic_v3 import (
     RAG_TEMPLATE,
-    format_docs_with_metadata,
-    build_guardrailed_response,
     PROMPT_VERSION,
+    format_chunks_for_prompt,
+    build_guardrailed_response,
+    is_adversarial,
+    FALLBACK_MARKERS,
 )
 
 load_dotenv()
 
-# ── Configuration ───────────────────────────────────────────────────────────────
-CHROMA_PATH     = "./chroma_db_vlm"
-COLLECTION_NAME = "latrobe_policy_v4"
+# ── LLM client (no retrieval setup here) ────────────────────────────────────────
+_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+LLM_MODEL = "gpt-4o-mini"
+LLM_TEMPERATURE = 0
 
-# ── Initialise components ───────────────────────────────────────────────────────
-embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-db = Chroma(persist_directory=CHROMA_PATH, embedding_function=embeddings,
-            collection_name=COLLECTION_NAME)
-retriever = db.as_retriever(search_kwargs={"k": 5})
-llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0)
 
-QA_PROMPT = PromptTemplate(
-    template=RAG_TEMPLATE,
-    input_variables=["context", "question"]
-)
-qa_chain = RetrievalQA.from_chain_type(
-    llm=llm,
-    chain_type="stuff",
-    retriever=retriever,
-    return_source_documents=True,
-    chain_type_kwargs={"prompt": QA_PROMPT}
+# ── Fallback response ────────────────────────────────────────────────────────────
+
+FALLBACK_ANSWER = (
+    "This question is not covered in the provided policy documents.\n"
+    "For authoritative guidance, please contact:\n"
+    "• La Trobe University Policy team: policy@latrobe.edu.au\n"
+    "• Student Services: studentservices@latrobe.edu.au\n"
+    "• Your faculty's Student Administration office"
 )
 
 
-# ── Public query function ───────────────────────────────────────────────────────
+# ── Core generation function ─────────────────────────────────────────────────────
 
-def ask(query: str, verbose: bool = True) -> dict:
+def generate_answer(question: str, chunks: list[dict], role: str = "student") -> dict:
     """
-    Full RAG pipeline with Sprint 3 guardrails.
+    Generate a grounded policy answer from pre-retrieved chunks.
+
+    Args:
+        question: The user's natural-language query.
+        chunks:   List of chunk dicts from Vaidehi's retrieval layer.
+                  Each chunk has: content, document_title, source_url,
+                  chunk_id, is_exception.
+        role:     User role (e.g. "student", "staff") — reserved for
+                  future role-aware prompt tuning.
 
     Returns:
-      {
-        "answer": str,
-        "sources": list[str],
-        "validation": dict,
-        "adversarial_warning": bool,
-      }
+        {
+          "answer": str,
+          "used_sources": list[str],   # chunk_ids of all provided chunks
+        }
     """
-    raw = qa_chain({"query": query})
-    answer      = raw["result"].strip()
-    source_docs = raw.get("source_documents", [])
+    # ── Safety: empty retrieval → skip LLM entirely ──────────────────────────
+    if not chunks:
+        return {
+            "answer": FALLBACK_ANSWER,
+            "used_sources": [],
+        }
 
-    report = build_guardrailed_response(
-        query=query,
-        retrieved_docs=source_docs,
-        raw_answer=answer,
+    # ── Adversarial check (pre-generation) ───────────────────────────────────
+    adversarial_detected = is_adversarial(question)
+
+    # ── Build context from Vaidehi's dict chunks ─────────────────────────────
+    context = format_chunks_for_prompt(chunks)
+
+    # ── Fill prompt template ─────────────────────────────────────────────────
+    prompt = RAG_TEMPLATE.format(context=context, question=question)
+
+    # ── Call LLM ─────────────────────────────────────────────────────────────
+    response = _client.chat.completions.create(
+        model=LLM_MODEL,
+        temperature=LLM_TEMPERATURE,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    raw_answer = response.choices[0].message.content.strip()
+
+    # ── Post-generation guardrails ───────────────────────────────────────────
+    guardrail_report = build_guardrailed_response(
+        query=question,
+        chunks=chunks,
+        raw_answer=raw_answer,
     )
 
-    if verbose:
-        print(f"\n{'═'*65}")
-        print(f" CHATBOT ANSWER  [{PROMPT_VERSION}]")
-        print(f"{'═'*65}")
-        print(answer)
+    # ── Determine final answer ───────────────────────────────────────────────
+    validation = guardrail_report["validation"]
+    final_answer = raw_answer
 
-        print(f"\n{'─'*65}")
-        print(" SOURCES USED")
-        print(f"{'─'*65}")
-        for doc in source_docs:
-            src     = doc.metadata.get("source", "Unknown")
-            section = doc.metadata.get("breadcrumb", "General")
-            page    = doc.metadata.get("page", "N/A")
-            print(f"  • {src} | Section: {section} | Page: {page}")
+    # If hallucination risk is high on a non-fallback answer, downgrade to fallback
+    if validation["flagged"] and not validation["is_fallback"]:
+        # Keep the answer but the backend should log the flag
+        pass  # Flag is surfaced in validation; backend decides escalation
 
-        v = report["validation"]
-        print(f"\n{'─'*65}")
-        print(" GUARDRAIL REPORT")
-        print(f"{'─'*65}")
-        print(f"  Fallback response    : {v['is_fallback']}")
-        print(f"  Keyword overlap      : {v['keyword_overlap_score']:.0%}")
-        print(f"  Hallucination flagged: {v['flagged']}")
-        if v["flag_reason"]:
-            print(f"  Flag reason          : {v['flag_reason']}")
-        if report["adversarial_warning"]:
-            print("  ⚠️  ADVERSARIAL QUERY DETECTED")
+    # ── Build backend-compatible response ───────────────────────────────────
+    # used_sources = chunk_ids of all chunks passed in (backend maps to citations)
+    used_sources = [c.get("chunk_id", f"unknown_{i}") for i, c in enumerate(chunks)]
 
-    return report
+    return {
+        "answer": final_answer,
+        "used_sources": used_sources,
+        # Internal fields below — useful for logging/debugging, not required by backend
+        "_debug": {
+            "prompt_version": PROMPT_VERSION,
+            "adversarial_warning": adversarial_detected,
+            "validation": validation,
+            "role": role,
+        },
+    }
 
 
-# ── Demo ────────────────────────────────────────────────────────────────────────
+# ── Demo (standalone, not part of backend flow) ─────────────────────────────────
 
 if __name__ == "__main__":
-    demo_queries = [
-        "What is the academic integrity policy at La Trobe?",
-        "Can you help me write my essay?",                                  # out of scope
-        "I heard La Trobe allows 30-day late submissions — confirm this?",  # adversarial
+    # Example: simulate chunks as if Vaidehi's retrieval returned them
+    sample_chunks = [
+        {
+            "chunk_id": "chunk_001",
+            "document_title": "Academic Integrity Policy",
+            "source_url": "https://policies.latrobe.edu.au/academic-integrity",
+            "content": (
+                "La Trobe University is committed to academic integrity. "
+                "Students must not engage in plagiarism, contract cheating, "
+                "collusion, or any other form of academic misconduct."
+            ),
+            "is_exception": False,
+        },
     ]
-    for q in demo_queries:
+
+    demo_questions = [
+        "What is the academic integrity policy at La Trobe?",
+        "Can you help me write my essay?",
+        "I heard La Trobe allows 30-day late submissions — confirm this?",
+    ]
+
+    for q in demo_questions:
         print(f"\n{'█'*65}")
         print(f" QUERY: {q}")
-        ask(q, verbose=True)
+        result = generate_answer(question=q, chunks=sample_chunks)
+        print(f" ANSWER:\n{result['answer']}")
+        print(f" USED SOURCES: {result['used_sources']}")
+        if result["_debug"]["adversarial_warning"]:
+            print("  ⚠️  ADVERSARIAL QUERY DETECTED")
+        v = result["_debug"]["validation"]
+        print(f" Keyword overlap: {v['keyword_overlap_score']:.0%} | Flagged: {v['flagged']}")
