@@ -1,12 +1,15 @@
-from fastapi import APIRouter,Request
+from fastapi import APIRouter, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from models.schemas import ChatRequest, ChatResponse, Citation
 from retrieval.retrieve_policies import retrieve_policies
-from generation.generate_answer import generate_answer
+from generation.chatbot import generate_answer
+
+import asyncio
 import json
 import time
 from datetime import datetime
+from functools import partial
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
@@ -19,16 +22,16 @@ def write_log(log_data: dict):
 
 @router.post("/ask", response_model=ChatResponse)
 @limiter.limit("10/minute")
-async def ask_question(api_request: Request , request : ChatRequest):
+async def ask_question(request: Request, body: ChatRequest):
     start_time = time.time()
- 
+
     try:
-        question = request.question
-        role = request.role
+        question = body.question
+        role = body.role
 
         # Step 1: Call retrieval and measure retrieval time
         retrieval_start = time.time()
-        chunks = retrieve_policies(question, role)
+        chunks = await retrieve_policies(question, role)
         retrieval_time_ms = round((time.time() - retrieval_start) * 1000, 2)
 
         # Step 2: Fallback if retrieval returns empty list
@@ -59,9 +62,12 @@ async def ask_question(api_request: Request , request : ChatRequest):
                 citations=[]
             )
 
-        # Step 3: Call generation and measure generation time
+        # Step 3: Call generation in a thread (ollama.chat is blocking)
         generation_start = time.time()
-        generation_result = generate_answer(question, chunks)
+        loop = asyncio.get_event_loop()
+        generation_result = await loop.run_in_executor(
+            None, partial(generate_answer, question, chunks)
+        )
         generation_time_ms = round((time.time() - generation_start) * 1000, 2)
 
         final_answer = generation_result.get(
@@ -122,8 +128,8 @@ async def ask_question(api_request: Request , request : ChatRequest):
 
         write_log({
             "timestamp": datetime.now().isoformat(),
-            "question": getattr(request, "question", ""),
-            "role": getattr(request, "role", ""),
+            "question": getattr(body, "question", ""),
+            "role": getattr(body, "role", ""),
             "retrieved_chunk_count": 0,
             "retrieved_chunk_ids": [],
             "final_answer": final_answer,

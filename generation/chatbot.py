@@ -27,11 +27,9 @@ PUBLIC API:
         chunk["is_exception"]    — True if this is an exception/override chunk
 """
 
-import os
-from dotenv import load_dotenv
-from openai import OpenAI
+import ollama
 
-from prompt_logic_v3 import (
+from generation.prompt_logic import (
     RAG_TEMPLATE,
     PROMPT_VERSION,
     format_chunks_for_prompt,
@@ -40,12 +38,7 @@ from prompt_logic_v3 import (
     FALLBACK_MARKERS,
 )
 
-load_dotenv()
-
-# ── LLM client (no retrieval setup here) ────────────────────────────────────────
-_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-LLM_MODEL = "gpt-4o-mini"
-LLM_TEMPERATURE = 0
+LLM_MODEL = "llama3"
 
 
 # ── Fallback response ────────────────────────────────────────────────────────────
@@ -96,12 +89,11 @@ def generate_answer(question: str, chunks: list[dict], role: str = "student") ->
     prompt = RAG_TEMPLATE.format(context=context, question=question)
 
     # ── Call LLM ─────────────────────────────────────────────────────────────
-    response = _client.chat.completions.create(
+    response = ollama.chat(
         model=LLM_MODEL,
-        temperature=LLM_TEMPERATURE,
         messages=[{"role": "user", "content": prompt}],
     )
-    raw_answer = response.choices[0].message.content.strip()
+    raw_answer = response.message.content.strip()
 
     # ── Post-generation guardrails ───────────────────────────────────────────
     guardrail_report = build_guardrailed_response(
