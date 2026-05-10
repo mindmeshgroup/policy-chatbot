@@ -1,5 +1,3 @@
-
-
 """
 Sprint 3 — Task 4: Score Answer Quality (Relevance + Citation Accuracy)
 
@@ -8,23 +6,21 @@ scoring rubric to each response. Outputs a scored report.
 
 RUBRIC (each dimension: 1–5)
 ──────────────────────────────────────────────────────────────────
-1. RELEVANCE        — Does the answer address the question asked?
-2. GROUNDING        — Is the answer supported by retrieved content?
-                      (uses keyword_overlap_score from guardrails)
-3. CITATION_ACCURACY — Do cited sources match the content of the answer?
-4. COMPLETENESS     — Does the answer cover all key aspects of the question?
-5. FALLBACK_QUALITY — For fallback answers: is the refusal clear and
-                      does it include escalation guidance?
-                      (N/A for grounded answers → scored as 5/5 automatically)
+1. RELEVANCE         — Does the answer address the question asked?
+2. GROUNDING         — Is the answer supported by retrieved content?
+                       (uses keyword_overlap_score from guardrails)
+3. CITATION_ACCURACY — Are the used_sources chunk_ids present and non-empty?
+4. COMPLETENESS      — Does the answer cover all key aspects of the question?
+5. FALLBACK_QUALITY  — For fallback answers: is the refusal clear and does
+                       it include escalation guidance?
+                       (N/A for grounded answers → scored 5/5 automatically)
 ──────────────────────────────────────────────────────────────────
-PASS threshold per question: average score ≥ 3.0 AND no CRITICAL fails
-CRITICAL fail: hallucination_flagged=True on a question where
-               expected_answer_type is NOT fallback.
+PASS threshold: average score ≥ 3.0 AND no CRITICAL fails
+CRITICAL fail: hallucination_flagged=True on a non-fallback question.
 """
 
 import json
 import sys
-from typing import Optional
 
 RESULTS_FILE = "test_results.json"
 SCORED_FILE  = "test_results_scored.json"
@@ -45,15 +41,6 @@ FALLBACK_PHRASES = [
 
 def score_relevance(answer: str, question: str, is_fallback: bool,
                     expected_answer_type: str) -> tuple[int, str]:
-    """
-    1 = Completely off-topic or empty
-    2 = Tangentially related but misses the question
-    3 = Partially answers the question
-    4 = Mostly answers with minor gaps
-    5 = Fully answers the question
-
-    For fallback answers: 5 if fallback was expected, 1 if not.
-    """
     if not answer.strip():
         return 1, "Empty answer."
 
@@ -63,7 +50,6 @@ def score_relevance(answer: str, question: str, is_fallback: bool,
         else:
             return 1, "Fallback returned but a policy answer was expected."
 
-    # Heuristic: check that key words from the question appear in the answer
     q_words = set(question.lower().split()) - {"what", "is", "the", "a", "an",
                                                 "how", "are", "at", "for", "to",
                                                 "in", "of", "and", "or"}
@@ -85,14 +71,6 @@ def score_relevance(answer: str, question: str, is_fallback: bool,
 
 def score_grounding(keyword_overlap_score: float, hallucination_flagged: bool,
                     is_fallback: bool) -> tuple[int, str]:
-    """
-    Uses the automated keyword_overlap_score from guardrails.
-    1 = Very low overlap (<20%) or flagged
-    2 = Low overlap (20–39%)
-    3 = Moderate overlap (40–59%)
-    4 = Good overlap (60–79%)
-    5 = Strong overlap (≥80%) or correct fallback
-    """
     if is_fallback:
         return 5, "Fallback response — grounding N/A."
     if hallucination_flagged:
@@ -111,46 +89,29 @@ def score_grounding(keyword_overlap_score: float, hallucination_flagged: bool,
         return 1, f"Very low overlap ({score:.0%})."
 
 
-def score_citation_accuracy(sources_returned: list, answer: str,
+def score_citation_accuracy(used_sources: list, answer: str,
                              is_fallback: bool) -> tuple[int, str]:
     """
-    1 = No sources returned for a grounded answer
-    2 = Sources present but none referenced in answer
-    3 = Sources present and some match answer content
-    4 = Sources well-matched and referenced
-    5 = Sources precisely match answer content with clear citation line
+    ARCHITECTURE UPDATE:
+    Citations are now handled by the backend from chunk metadata.
+    used_sources contains chunk_ids; we score on whether they are present.
+    The LLM answer itself should NOT contain citation lines.
+
+    1 = No chunk_ids returned for a grounded answer
+    3 = Some chunk_ids returned
+    5 = Multiple chunk_ids returned (backend can map to full citations)
     """
     if is_fallback:
         return 5, "Fallback — citation N/A."
-    if not sources_returned:
-        return 1, "No source documents returned."
-
-    has_citation_line = "sources:" in answer.lower()
-    num_sources = len(sources_returned)
-
-    if has_citation_line and num_sources >= 2:
-        return 5, f"{num_sources} sources with citation line present."
-    elif has_citation_line and num_sources == 1:
-        return 4, "1 source with citation line present."
-    elif not has_citation_line and num_sources >= 2:
-        return 3, f"{num_sources} sources returned but no explicit citation line."
-    elif not has_citation_line and num_sources == 1:
-        return 2, "1 source returned but no citation line."
-    else:
-        return 1, "No usable citation information."
+    if not used_sources:
+        return 1, "No chunk_ids in used_sources — backend cannot map citations."
+    if len(used_sources) >= 2:
+        return 5, f"{len(used_sources)} chunk_ids returned — backend can map citations."
+    return 3, "1 chunk_id returned — partial citation coverage."
 
 
 def score_completeness(answer: str, category: str,
                        is_fallback: bool) -> tuple[int, str]:
-    """
-    Rough heuristic based on answer length and structure.
-    Edge and adversarial answers held to lower length expectations.
-    1 = < 30 words (unusably short)
-    2 = 30–60 words
-    3 = 61–120 words
-    4 = 121–250 words
-    5 = > 250 words  (or is a correct, concise fallback)
-    """
     if is_fallback:
         return 4, "Correct fallback — concise by design."
     word_count = len(answer.split())
@@ -168,16 +129,9 @@ def score_completeness(answer: str, category: str,
 
 def score_fallback_quality(answer: str, is_fallback: bool,
                             expected_answer_type: str) -> tuple[int, str]:
-    """
-    Only evaluated when is_fallback=True and fallback was expected.
-    1 = No escalation info, unclear message
-    3 = Clear refusal but no escalation
-    5 = Clear refusal + escalation contacts included
-    """
     if not is_fallback:
         return 5, "Not a fallback response — N/A, full marks."
     if "fallback" not in expected_answer_type and "correction" not in expected_answer_type:
-        # Fallback was NOT expected — relevance score handles the penalty
         return 5, "N/A — scored under relevance."
 
     ans_lower = answer.lower()
@@ -198,7 +152,6 @@ def determine_pass_fail(scores: dict, hallucination_flagged: bool,
                         is_fallback: bool, expected_answer_type: str) -> tuple[str, str]:
     avg = sum(scores.values()) / len(scores)
 
-    # Critical fail: hallucination flagged when a real answer was expected
     if hallucination_flagged and "fallback" not in expected_answer_type:
         return "FAIL", f"CRITICAL: hallucination flagged. Avg score: {avg:.1f}"
 
@@ -213,17 +166,17 @@ def determine_pass_fail(scores: dict, hallucination_flagged: bool,
 # ── Root cause analysis ─────────────────────────────────────────────────────────
 
 def root_cause(scores: dict, hallucination_flagged: bool,
-               sources_returned: list) -> str:
+               used_sources: list) -> str:
     reasons = []
     if scores["relevance"] <= 2:
         reasons.append("Retrieval miss or off-topic generation.")
     if scores["grounding"] <= 2 or hallucination_flagged:
         reasons.append("Generation error: low grounding / hallucination risk.")
     if scores["citation_accuracy"] <= 2:
-        reasons.append("Prompt issue: citation format not followed.")
+        reasons.append("No chunk_ids returned — backend citation mapping will fail.")
     if scores["completeness"] <= 2:
-        reasons.append("Answer too short — retrieval may have returned poor chunks.")
-    if not sources_returned:
+        reasons.append("Answer too short — retrieved chunks may be poor quality.")
+    if not used_sources:
         reasons.append("No documents retrieved — possible DB or query issue.")
     return " | ".join(reasons) if reasons else "No obvious failure mode."
 
@@ -249,28 +202,29 @@ def score_all(results_file: str = RESULTS_FILE) -> list[dict]:
         exp_type = r.get("expected_answer_type", "")
         h_flag   = r.get("hallucination_flagged", False)
         overlap  = r.get("keyword_overlap_score", 0.0)
-        sources  = r.get("sources_returned", [])
+        # ARCHITECTURE UPDATE: use used_sources (chunk_ids) not sources_returned
+        used_sources = r.get("used_sources", [])
 
         if r.get("pass_fail") == "ERROR":
             scored.append({**r, "scores": {}, "avg_score": 0, "root_cause": "Pipeline error."})
             continue
 
-        s_rel,  n_rel  = score_relevance(answer, r["question"], is_fb, exp_type)
-        s_grd,  n_grd  = score_grounding(overlap, h_flag, is_fb)
-        s_cit,  n_cit  = score_citation_accuracy(sources, answer, is_fb)
-        s_com,  n_com  = score_completeness(answer, category, is_fb)
-        s_fb,   n_fb   = score_fallback_quality(answer, is_fb, exp_type)
+        s_rel, n_rel = score_relevance(answer, r["question"], is_fb, exp_type)
+        s_grd, n_grd = score_grounding(overlap, h_flag, is_fb)
+        s_cit, n_cit = score_citation_accuracy(used_sources, answer, is_fb)
+        s_com, n_com = score_completeness(answer, category, is_fb)
+        s_fb,  n_fb  = score_fallback_quality(answer, is_fb, exp_type)
 
         scores = {
-            "relevance":        s_rel,
-            "grounding":        s_grd,
+            "relevance":         s_rel,
+            "grounding":         s_grd,
             "citation_accuracy": s_cit,
-            "completeness":     s_com,
-            "fallback_quality": s_fb,
+            "completeness":      s_com,
+            "fallback_quality":  s_fb,
         }
         avg = sum(scores.values()) / len(scores)
         pf, pf_note = determine_pass_fail(scores, h_flag, is_fb, exp_type)
-        rc = root_cause(scores, h_flag, sources)
+        rc = root_cause(scores, h_flag, used_sources)
 
         print(f"\n[{qid}] [{category}]  →  {pf}  (avg {avg:.1f}/5)")
         print(f"  Scores: REL={s_rel} GRD={s_grd} CIT={s_cit} COM={s_com} FB={s_fb}")
@@ -284,14 +238,16 @@ def score_all(results_file: str = RESULTS_FILE) -> list[dict]:
             **r,
             "scores": scores,
             "score_notes": {
-                "relevance": n_rel, "grounding": n_grd,
-                "citation_accuracy": n_cit, "completeness": n_com,
-                "fallback_quality": n_fb,
+                "relevance":         n_rel,
+                "grounding":         n_grd,
+                "citation_accuracy": n_cit,
+                "completeness":      n_com,
+                "fallback_quality":  n_fb,
             },
-            "avg_score": round(avg, 2),
-            "pass_fail": pf,
+            "avg_score":      round(avg, 2),
+            "pass_fail":      pf,
             "pass_fail_note": pf_note,
-            "root_cause": rc,
+            "root_cause":     rc,
         })
 
     # ── Aggregate summary ──────────────────────────────────────────────────────
