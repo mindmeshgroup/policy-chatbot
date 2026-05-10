@@ -8,13 +8,13 @@ import concurrent.futures
 from urllib.parse import urlparse, parse_qs, urljoin
 from bs4 import BeautifulSoup
 
-# --- IMPORTS ---
+# imports
 from retrieval.utils.metadata_factory import extract_metadata_and_chunk
 from retrieval.utils.vector_engine import clean_and_upsert
 from retrieval.utils.crawler import get_all_policy_links, _fetch_html
 from retrieval.utils.state_manager import get_all_states, save_state
 
-# --- CONFIGURATION ---
+# configuration
 COLLECTION_NAME = "university_policies"
 WEB_HUB_URL = "https://policies.latrobe.edu.au/browse"
 LOCAL_FOLDER = "./policy_pdfs/"
@@ -140,7 +140,7 @@ def cpu_bound_conversion_and_storage(source: str, is_web: bool, html_content: st
 def run_web_ingestion():
     print(f"\n---  WEB CRAWL MODE (STREAMING PARALLEL) ---")
     all_links = get_all_policy_links(WEB_HUB_URL)
-    target_urls = [url for url in all_links if "/document/view.php?id=" in url]
+    target_urls = [url for url in all_links if "/document/view.php?id=" in url][:10]
     
     if not target_urls:
         return print("No policy links found.")

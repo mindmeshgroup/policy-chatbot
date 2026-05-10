@@ -58,7 +58,7 @@ def extract_global_metadata(scouted_text: str) -> dict:
             messages=[{'role': 'user', 'content': prompt}], 
             format='json', 
             options={'temperature': 0.0},
-            keep_alive=0 
+            keep_alive="5m" # FIX: Prevents VRAM/Disk Thrashing during batch processing
         )
         return json.loads(response['message']['content'])
     except Exception as e:
@@ -70,8 +70,20 @@ def extract_metadata_and_chunk(docling_document, source_path: str):
     chunker = HierarchicalChunker()
     chunks = list(chunker.chunk(docling_document))
     
+    # FIX: Empty Chunk IndexError Guardrail
+    if not chunks:
+        print(f"      [!] Docling returned 0 chunks for {source_path}. Skipping.")
+        return []
+
     document_title = chunks[0].meta.headings[0] if chunks and chunks[0].meta.headings else "Unknown Policy"
-    document_id = hashlib.sha256(document_title.encode('utf-8')).hexdigest()[:12]
+    
+    # FIX: "Unknown Policy" Collision Safety
+    if document_title == "Unknown Policy":
+        unique_string = f"{document_title}_{source_path}"
+    else:
+        unique_string = document_title
+        
+    document_id = hashlib.sha256(unique_string.encode('utf-8')).hexdigest()[:12]
     doc_type = "Procedure" if "Procedure" in document_title else "Policy"
 
     # 2. UPGRADED STRUCTURAL SCOUTING (Sub-string + Text Pattern Matching)
@@ -93,7 +105,8 @@ def extract_metadata_and_chunk(docling_document, source_path: str):
             
     if not scouted_context.strip():
         print(f"      [!] Scouting missed headers. Falling back to expanded top of document.")
-        scouted_context = docling_document.export_to_markdown()[:3000]
+        # FIX: Replaced blind 3000-char slice with whole semantic chunks
+        scouted_context = "\n".join([c.text for c in chunks[:5]])
 
     # 3. OLLAMA IN-CONTEXT EXTRACTION
     llm_data = extract_global_metadata(scouted_context)
@@ -145,14 +158,18 @@ def extract_metadata_and_chunk(docling_document, source_path: str):
         print(f"      [FALLBACK APPLIED] No specific roles found for '{document_title}'. Defaulting to Universal Access.")
         global_cohorts = ALL_ROLES.copy()
 
-    # Normalize Dates
-    iso_eff = standardize_date(llm_data.get("effective_date"))
-    iso_rev = standardize_date(llm_data.get("review_date"))
-    enquiries = llm_data.get("enquiries_contact") or "University Administration"
+    # Normalize Dates (FIX: Qdrant NoneType Rejection)
+    iso_eff = standardize_date(llm_data.get("effective_date")) or "1970-01-01"
+    iso_rev = standardize_date(llm_data.get("review_date")) or "2099-12-31"
+    
+    # FIX: Truthy Null Trap - Sanitizes hallucinated empty strings or "null" texts
+    raw_enq = str(llm_data.get("enquiries_contact", "")).strip()
+    enquiries = "University Administration" if raw_enq.lower() in ["", "none", "null", "n/a"] else raw_enq
 
     # 5. STRICT EXCEPTION DETECTION (CRAG Upgrade)
+    # FIX: Added 'exception' and 'exclusion' to the regex list
     strict_exception_pattern = re.compile(
-        r'\b(unless|except|provided that|notwithstanding|subject to|exempt from|waive the requirement|does not apply to)\b',
+        r'\b(unless|except|provided that|notwithstanding|subject to|exempt from|waive the requirement|does not apply to|exception|exclusion)\b',
         re.IGNORECASE
     )
 
@@ -196,7 +213,7 @@ def extract_metadata_and_chunk(docling_document, source_path: str):
             "breadcrumb": breadcrumb,
             "document_summary": f"Policy regarding {document_title}.",
             "doc_type": doc_type,
-            "category": ["Academic", "Policy Library"],
+            "category": "Academic Policy Library", # FIX: Flattened array for strict match searching
             "access_level": "Public",
             "target_cohort": chunk_final_roles, 
             "campus_scope": ["All Campuses"],
