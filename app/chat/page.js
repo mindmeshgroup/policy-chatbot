@@ -31,10 +31,47 @@ function ChatContent() {
   const [selectedHistory, setSelectedHistory] = useState(null);
   const [chatStarted, setChatStarted] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const messagesEndRef = useRef(null);
   const liveRegionRef = useRef(null);
+
+  // ── Theme ────────────────────────────────────────────────────────────────────
+  const t = {
+    pageBg:              darkMode ? '#1a1a1a' : 'white',
+    navBg:               darkMode ? '#1a1a1a' : 'white',
+    navBorder:           darkMode ? '#333'    : '#eee',
+    navText:             darkMode ? '#ffffff' : '#1a1a1a',
+    navSubText:          darkMode ? '#aaaaaa' : '#444',
+    sidebarBg:           darkMode ? '#2d2d2d' : 'white',
+    sidebarItemBg:       darkMode ? '#3a3a3a' : 'white',
+    sidebarItemBgSel:    darkMode ? '#4a1a20' : '#fff0f0',
+    sidebarItemBorder:   darkMode ? '#555'    : '#d9d9d9',
+    sidebarItemText:     darkMode ? '#ffffff' : '#1a1a1a',
+    chatPanelBg:         darkMode ? '#2d2d2d' : 'white',
+    bubbleBg:            darkMode ? '#3a3a3a' : 'white',
+    bubbleBorder:        darkMode ? '#555'    : '#a0a0a0',
+    bubbleText:          darkMode ? '#ffffff' : '#1a1a1a',
+    disclaimerBg:        darkMode ? '#3a2e00' : '#fff8e1',
+    disclaimerBorder:    darkMode ? '#5a4800' : '#ffe082',
+    disclaimerText:      darkMode ? '#ffd54f' : '#7a6000',
+    inputWrapBg:         darkMode ? '#1a1a1a' : 'white',
+    inputWrapBorder:     darkMode ? '#444'    : '#eee',
+    inputInnerBg:        darkMode ? '#3a3a3a' : '#f7f7f7',
+    inputInnerBorder:    darkMode ? '#555'    : '#a0a0a0',
+    inputText:           darkMode ? '#ffffff' : '#1a1a1a',
+    faqChipBg:           darkMode ? '#3a1a20' : '#fff0f0',
+    faqChipBorder:       darkMode ? 'rgba(200,16,46,0.45)' : 'rgba(200,16,46,0.25)',
+    sourceExcerpt:       darkMode ? '#aaaaaa' : '#999',
+    sourcesLabel:        darkMode ? '#777'    : '#999',
+    loadingBubbleBg:     darkMode ? '#3a3a3a' : 'white',
+    loadingBubbleBorder: darkMode ? '#555'    : '#a0a0a0',
+    mobileFooterBg:      darkMode ? '#1a1a1a' : 'white',
+    mobileFooterBorder:  darkMode ? '#333'    : '#eee',
+    mobileNavBtnBg:      darkMode ? '#1a1a1a' : 'white',
+    mobileNavLabelColor: darkMode ? '#aaaaaa' : '#666',
+  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -44,7 +81,6 @@ function ChatContent() {
     if (!loading) inputRef.current?.focus();
   }, [loading]);
 
-  // Announce new bot messages to screen readers
   useEffect(() => {
     const lastMsg = messages[messages.length - 1];
     if (lastMsg?.sender === 'bot' && liveRegionRef.current) {
@@ -92,9 +128,7 @@ function ChatContent() {
     }
   };
 
-  const handleChipClick = (question) => {
-    handleSend(question);
-  };
+  const handleChipClick = (question) => handleSend(question);
 
   const navItems = [
     {
@@ -130,10 +164,39 @@ function ChatContent() {
     },
   ];
 
-  return (
-    <div style={{ backgroundColor: 'white', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', sans-serif" }}>
+  // Shared toggle button (rendered in both navbars)
+  const ThemeToggle = ({ style = {} }) => (
+    <button
+      onClick={() => setDarkMode(d => !d)}
+      aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+      title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+      style={{
+        width: '40px',
+        height: '40px',
+        borderRadius: '50%',
+        border: `2px solid ${darkMode ? '#555' : '#ddd'}`,
+        backgroundColor: darkMode ? '#3a3a3a' : '#f5f5f5',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: '18px',
+        flexShrink: 0,
+        outline: 'none',
+        transition: 'background-color 0.2s, border-color 0.2s',
+        ...style,
+      }}
+      onFocus={e => e.currentTarget.style.boxShadow = '0 0 0 3px rgba(200,16,46,0.35)'}
+      onBlur={e => e.currentTarget.style.boxShadow = 'none'}
+    >
+      {darkMode ? '☀️' : '🌙'}
+    </button>
+  );
 
-      {/* Screen reader live region — announces new bot messages */}
+  return (
+    <div style={{ backgroundColor: t.pageBg, minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', sans-serif", transition: 'background-color 0.2s' }}>
+
+      {/* Screen reader live region */}
       <div
         ref={liveRegionRef}
         aria-live="polite"
@@ -142,29 +205,36 @@ function ChatContent() {
       />
 
       {/* ── TOP NAVBAR — DESKTOP ── */}
-      <header className="hidden md:flex" style={{ backgroundColor: 'white', padding: '16px 60px', alignItems: 'center', gap: '24px', borderBottom: '1px solid #eee', position: 'sticky', top: 0, zIndex: 10 }}>
+      <header className="hidden md:flex" style={{ backgroundColor: t.navBg, padding: '16px 60px', alignItems: 'center', gap: '24px', borderBottom: `1px solid ${t.navBorder}`, position: 'sticky', top: 0, zIndex: 10, transition: 'background-color 0.2s' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flexShrink: 0 }}>
           <img src="/latrobe-logo.png" alt="La Trobe University" style={{ height: '80px', objectFit: 'contain' }} />
-          <p style={{ fontSize: '12px', fontWeight: '500', color: '#444', margin: '2px 0 0 0', paddingLeft: '4px' }}>Policy Chatbot</p>
+          <p style={{ fontSize: '12px', fontWeight: '500', color: t.navSubText, margin: '2px 0 0 0', paddingLeft: '4px' }}>Policy Chatbot</p>
         </div>
         <div style={{ flex: 1, margin: '0 16px' }}>
-          <div style={{ border: '3px solid #C8102E', borderRadius: '8px', padding: '14px 24px', fontSize: '18px', fontWeight: '700', color: '#1a1a1a' }}>
+          <div style={{ border: '3px solid #C8102E', borderRadius: '8px', padding: '14px 24px', fontSize: '18px', fontWeight: '700', color: t.navText }}>
             Home
           </div>
         </div>
-        <div
-          style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#C8102E', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, boxShadow: '0 4px 8px rgba(0,0,0,0.25)' }}
-          role="img"
-          aria-label="User profile: Yasiru"
-        >
-          <span style={{ color: 'white', fontWeight: '700', fontSize: '24px' }} aria-hidden="true">Y</span>
+        {/* Theme toggle + avatar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+          <ThemeToggle />
+          <div
+            style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#C8102E', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 8px rgba(0,0,0,0.25)' }}
+            role="img"
+            aria-label="User profile: Yasiru"
+          >
+            <span style={{ color: 'white', fontWeight: '700', fontSize: '24px' }} aria-hidden="true">Y</span>
+          </div>
         </div>
       </header>
 
       {/* ── TOP NAVBAR — MOBILE ── */}
-      <header className="flex md:hidden" style={{ backgroundColor: 'white', padding: '16px 20px', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #eee', position: 'sticky', top: 0, zIndex: 10 }}>
+      <header className="flex md:hidden" style={{ backgroundColor: t.navBg, padding: '16px 20px', flexDirection: 'column', alignItems: 'center', borderBottom: `1px solid ${t.navBorder}`, position: 'sticky', top: 0, zIndex: 10, transition: 'background-color 0.2s' }}>
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
+          <ThemeToggle />
+        </div>
         <img src="/latrobe-logo.png" alt="La Trobe University" style={{ height: '90px', objectFit: 'contain' }} />
-        <p style={{ fontSize: '13px', fontWeight: '500', color: '#444', margin: '4px 0 8px 0', textAlign: 'center' }}>Policy Chatbot</p>
+        <p style={{ fontSize: '13px', fontWeight: '500', color: t.navSubText, margin: '4px 0 8px 0', textAlign: 'center' }}>Policy Chatbot</p>
         <div style={{ height: '3px', backgroundColor: '#C8102E', width: '70%', borderRadius: '2px' }} />
       </header>
 
@@ -172,9 +242,9 @@ function ChatContent() {
       <main style={{ display: 'flex', flex: 1, width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '24px 60px', gap: '24px', paddingBottom: '100px' }}>
 
         {/* ── SIDEBAR — desktop only ── */}
-        <nav className="hidden md:flex" aria-label="Chat history" style={{ width: '315px', flexShrink: 0, backgroundColor: 'white', borderRadius: '12px', border: '2.5px solid #C8102E', padding: '24px 20px', flexDirection: 'column', gap: '16px', height: 'fit-content' }}>
+        <nav className="hidden md:flex" aria-label="Chat history" style={{ width: '315px', flexShrink: 0, backgroundColor: t.sidebarBg, borderRadius: '12px', border: '2.5px solid #C8102E', padding: '24px 20px', flexDirection: 'column', gap: '16px', height: 'fit-content', transition: 'background-color 0.2s' }}>
           <div style={{ textAlign: 'center' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1a1a1a', margin: '0 0 8px 0', fontFamily: "'DM Sans', sans-serif" }}>Chat History</h2>
+            <h2 style={{ fontSize: '18px', fontWeight: '700', color: t.navText, margin: '0 0 8px 0', fontFamily: "'DM Sans', sans-serif" }}>Chat History</h2>
             <div style={{ height: '2px', backgroundColor: '#C8102E', width: '60%', margin: '0 auto' }} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
@@ -185,17 +255,17 @@ function ChatContent() {
                 aria-pressed={selectedHistory === item.id}
                 style={{
                   textAlign: 'left', padding: '8px 16px', borderRadius: '8px',
-                  border: '1.5px solid #d9d9d9',
-                  backgroundColor: selectedHistory === item.id ? '#fff0f0' : 'white',
-                  fontSize: '13px', fontWeight: '500', color: '#1a1a1a',
+                  border: `1.5px solid ${t.sidebarItemBorder}`,
+                  backgroundColor: selectedHistory === item.id ? t.sidebarItemBgSel : t.sidebarItemBg,
+                  fontSize: '13px', fontWeight: '500', color: t.sidebarItemText,
                   cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
                   transition: 'all 0.2s', fontFamily: "'DM Sans', sans-serif",
                   outline: 'none',
                 }}
                 onFocus={e => e.currentTarget.style.boxShadow = '0 0 0 3px rgba(200,16,46,0.3)'}
                 onBlur={e => e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.08)'}
-                onMouseOver={e => e.currentTarget.style.backgroundColor = '#fff0f0'}
-                onMouseOut={e => e.currentTarget.style.backgroundColor = selectedHistory === item.id ? '#fff0f0' : 'white'}
+                onMouseOver={e => e.currentTarget.style.backgroundColor = t.sidebarItemBgSel}
+                onMouseOut={e => e.currentTarget.style.backgroundColor = selectedHistory === item.id ? t.sidebarItemBgSel : t.sidebarItemBg}
               >
                 {item.text}
               </button>
@@ -207,12 +277,12 @@ function ChatContent() {
         <section
           className="md:border-[2px] md:border-[#a0a0a0] md:shadow-md"
           aria-label="Chat conversation"
-          style={{ flex: 1, backgroundColor: 'white', borderRadius: '12px', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: '680px' }}
+          style={{ flex: 1, backgroundColor: t.chatPanelBg, borderRadius: '12px', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: '680px', transition: 'background-color 0.2s' }}
         >
 
           {/* Disclaimer */}
-          <div role="note" style={{ backgroundColor: '#fff8e1', borderBottom: '1px solid #ffe082', padding: '8px 20px' }}>
-            <span style={{ fontSize: '12px', color: '#7a6000' }}>⚠️ Responses are based on official La Trobe policy documents. For legal advice, contact university staff.</span>
+          <div role="note" style={{ backgroundColor: t.disclaimerBg, borderBottom: `1px solid ${t.disclaimerBorder}`, padding: '8px 20px', transition: 'background-color 0.2s' }}>
+            <span style={{ fontSize: '12px', color: t.disclaimerText }}>⚠️ Responses are based on official La Trobe policy documents. For legal advice, contact university staff.</span>
           </div>
 
           {/* Messages */}
@@ -239,7 +309,7 @@ function ChatContent() {
                   <div
                     role={msg.sender === 'bot' ? 'article' : undefined}
                     aria-label={msg.sender === 'bot' ? 'Chatbot response' : 'Your message'}
-                    style={{ maxWidth: '55%', minHeight: '48px', padding: '12px 16px', backgroundColor: 'white', borderRadius: '8px', border: '2px solid #a0a0a0', fontSize: '13px', fontWeight: '500', color: '#1a1a1a', lineHeight: '1.5', fontFamily: "'DM Sans', sans-serif" }}
+                    style={{ maxWidth: '55%', minHeight: '48px', padding: '12px 16px', backgroundColor: t.bubbleBg, borderRadius: '8px', border: `2px solid ${t.bubbleBorder}`, fontSize: '13px', fontWeight: '500', color: t.bubbleText, lineHeight: '1.5', fontFamily: "'DM Sans', sans-serif", transition: 'background-color 0.2s, border-color 0.2s' }}
                   >
                     {msg.text}
                   </div>
@@ -257,7 +327,7 @@ function ChatContent() {
                 {/* Source Citations — bot messages only */}
                 {msg.sender === 'bot' && msg.sources && msg.sources.length > 0 && (
                   <div style={{ marginLeft: '42px', marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <span style={{ fontSize: '10px', fontWeight: '700', color: '#999', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Sources</span>
+                    <span style={{ fontSize: '10px', fontWeight: '700', color: t.sourcesLabel, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Sources</span>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {msg.sources.map((source, si) => (
                         <div key={si}>
@@ -297,7 +367,7 @@ function ChatContent() {
                               margin: '4px 4px 0 4px',
                               fontSize: '11px',
                               fontStyle: 'italic',
-                              color: '#999',
+                              color: t.sourceExcerpt,
                               lineHeight: '1.4',
                               display: '-webkit-box',
                               WebkitLineClamp: 2,
@@ -323,7 +393,7 @@ function ChatContent() {
                 <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#CB0101', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-hidden="true">
                   <span style={{ color: 'white', fontSize: '10px', fontWeight: '700' }}>LTU</span>
                 </div>
-                <div style={{ backgroundColor: 'white', border: '2px solid #a0a0a0', borderRadius: '8px', padding: '14px 18px', display: 'flex', gap: '5px', alignItems: 'center' }} aria-hidden="true">
+                <div style={{ backgroundColor: t.loadingBubbleBg, border: `2px solid ${t.loadingBubbleBorder}`, borderRadius: '8px', padding: '14px 18px', display: 'flex', gap: '5px', alignItems: 'center' }} aria-hidden="true">
                   {[0, 150, 300].map((delay, i) => (
                     <span key={i} className="animate-bounce" style={{ width: '8px', height: '8px', backgroundColor: '#CB0101', borderRadius: '50%', display: 'inline-block', animationDelay: `${delay}ms` }} />
                   ))}
@@ -337,16 +407,16 @@ function ChatContent() {
           {/* ── FAQ CHIPS — only visible before chat starts ── */}
           {!chatStarted && (
             <div style={{ padding: '0 24px 16px 24px' }}>
-              <p style={{ fontSize: '11px', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px 0' }} id="faq-label">Suggested questions</p>
+              <p style={{ fontSize: '11px', fontWeight: '600', color: t.sourcesLabel, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px 0' }} id="faq-label">Suggested questions</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }} role="group" aria-labelledby="faq-label">
                 {faqChips.map((question, i) => (
                   <button
                     key={i}
                     onClick={() => handleChipClick(question)}
                     aria-label={`Ask: ${question}`}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', fontSize: '12px', fontWeight: '500', color: '#C8102E', backgroundColor: '#fff0f0', border: '1.5px solid rgba(200,16,46,0.25)', borderRadius: '20px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.15s', outline: 'none' }}
-                    onMouseOver={e => { e.currentTarget.style.backgroundColor = '#ffe0e5'; e.currentTarget.style.borderColor = '#C8102E'; }}
-                    onMouseOut={e => { e.currentTarget.style.backgroundColor = '#fff0f0'; e.currentTarget.style.borderColor = 'rgba(200,16,46,0.25)'; }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', fontSize: '12px', fontWeight: '500', color: '#C8102E', backgroundColor: t.faqChipBg, border: `1.5px solid ${t.faqChipBorder}`, borderRadius: '20px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'all 0.15s', outline: 'none' }}
+                    onMouseOver={e => { e.currentTarget.style.backgroundColor = darkMode ? '#5a1a25' : '#ffe0e5'; e.currentTarget.style.borderColor = '#C8102E'; }}
+                    onMouseOut={e => { e.currentTarget.style.backgroundColor = t.faqChipBg; e.currentTarget.style.borderColor = t.faqChipBorder; }}
                     onFocus={e => e.currentTarget.style.boxShadow = '0 0 0 3px rgba(200,16,46,0.3)'}
                     onBlur={e => e.currentTarget.style.boxShadow = 'none'}
                   >
@@ -363,8 +433,8 @@ function ChatContent() {
           )}
 
           {/* Input */}
-          <div style={{ padding: '16px 24px', borderTop: '1px solid #eee', backgroundColor: 'white' }}>
-            <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#f7f7f7', border: inputFocused ? '2px solid #C8102E' : '2px solid #a0a0a0', borderRadius: '8px', overflow: 'hidden', transition: 'border-color 0.2s' }}>
+          <div style={{ padding: '16px 24px', borderTop: `1px solid ${t.inputWrapBorder}`, backgroundColor: t.inputWrapBg, transition: 'background-color 0.2s' }}>
+            <div style={{ display: 'flex', alignItems: 'center', backgroundColor: t.inputInnerBg, border: inputFocused ? '2px solid #C8102E' : `2px solid ${t.inputInnerBorder}`, borderRadius: '8px', overflow: 'hidden', transition: 'border-color 0.2s, background-color 0.2s' }}>
               <label htmlFor="chat-input" style={{ position: 'absolute', width: '1px', height: '1px', padding: 0, margin: '-1px', overflow: 'hidden', clip: 'rect(0,0,0,0)', border: 0 }}>
                 Type your policy question
               </label>
@@ -382,10 +452,10 @@ function ChatContent() {
                 aria-label="Type your policy question"
                 aria-describedby="char-count"
                 disabled={loading}
-                style={{ flex: 1, height: '56px', backgroundColor: 'transparent', padding: '0 20px', fontSize: '13px', fontWeight: '500', color: '#1a1a1a', outline: 'none', border: 'none', fontFamily: "'DM Sans', sans-serif" }}
+                style={{ flex: 1, height: '56px', backgroundColor: 'transparent', padding: '0 20px', fontSize: '13px', fontWeight: '500', color: t.inputText, outline: 'none', border: 'none', fontFamily: "'DM Sans', sans-serif" }}
               />
               {inputValue.length > 400 && (
-                <span id="char-count" style={{ fontSize: '11px', color: inputValue.length > 480 ? '#C8102E' : '#999', padding: '0 8px', flexShrink: 0 }} aria-live="polite">
+                <span id="char-count" style={{ fontSize: '11px', color: inputValue.length > 480 ? '#C8102E' : t.sourcesLabel, padding: '0 8px', flexShrink: 0 }} aria-live="polite">
                   {500 - inputValue.length}
                 </span>
               )}
@@ -393,7 +463,7 @@ function ChatContent() {
                 onClick={() => handleSend()}
                 disabled={loading || !inputValue.trim()}
                 aria-label="Send message"
-                style={{ width: '60px', height: '56px', backgroundColor: loading || !inputValue.trim() ? '#e0e0e0' : '#CB0101', border: 'none', cursor: loading || !inputValue.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.2s', outline: 'none' }}
+                style={{ width: '60px', height: '56px', backgroundColor: loading || !inputValue.trim() ? (darkMode ? '#444' : '#e0e0e0') : '#CB0101', border: 'none', cursor: loading || !inputValue.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.2s', outline: 'none' }}
                 onFocus={e => e.currentTarget.style.boxShadow = '0 0 0 3px rgba(200,16,46,0.3)'}
                 onBlur={e => e.currentTarget.style.boxShadow = 'none'}
               >
@@ -409,19 +479,19 @@ function ChatContent() {
       </main>
 
       {/* ── MOBILE FOOTER MENU ── */}
-      <nav className="flex md:hidden" aria-label="Main navigation" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: 'white', borderTop: '1px solid #eee', padding: '8px 0 12px', justifyContent: 'space-around', zIndex: 20 }}>
+      <nav className="flex md:hidden" aria-label="Main navigation" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: t.mobileFooterBg, borderTop: `1px solid ${t.mobileFooterBorder}`, padding: '8px 0 12px', justifyContent: 'space-around', zIndex: 20, transition: 'background-color 0.2s' }}>
         {navItems.map(item => (
           <button
             key={item.label}
             onClick={() => setActiveNav(item.label)}
             aria-label={item.label}
             aria-current={activeNav === item.label ? 'page' : undefined}
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 16px', borderRadius: '10px', backgroundColor: activeNav === item.label ? '#C8102E' : 'white', boxShadow: activeNav === item.label ? '0 4px 8px rgba(0,0,0,0.2)' : 'none', transition: 'all 0.2s', outline: 'none' }}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 16px', borderRadius: '10px', backgroundColor: activeNav === item.label ? '#C8102E' : t.mobileNavBtnBg, boxShadow: activeNav === item.label ? '0 4px 8px rgba(0,0,0,0.2)' : 'none', transition: 'all 0.2s', outline: 'none' }}
             onFocus={e => e.currentTarget.style.boxShadow = '0 0 0 3px rgba(200,16,46,0.3)'}
             onBlur={e => e.currentTarget.style.boxShadow = activeNav === item.label ? '0 4px 8px rgba(0,0,0,0.2)' : 'none'}
           >
-            <span style={{ color: activeNav === item.label ? 'white' : '#666' }}>{item.icon}</span>
-            <span style={{ fontSize: '10px', fontWeight: '500', color: activeNav === item.label ? 'white' : '#666', fontFamily: "'DM Sans', sans-serif" }}>{item.label}</span>
+            <span style={{ color: activeNav === item.label ? 'white' : t.mobileNavLabelColor }}>{item.icon}</span>
+            <span style={{ fontSize: '10px', fontWeight: '500', color: activeNav === item.label ? 'white' : t.mobileNavLabelColor, fontFamily: "'DM Sans', sans-serif" }}>{item.label}</span>
           </button>
         ))}
       </nav>
