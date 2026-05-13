@@ -97,6 +97,10 @@ def init_worker():
 
 def cpu_bound_conversion_and_storage(source: str, is_web: bool, html_content: str = None, doc_tracker: str = ""):
     global worker_converter
+    import re
+    import os
+    import tempfile
+    
     temp_title = parse_document_title(source)
     
     print(f"\n{doc_tracker} Parsing and Chunking: {temp_title}...")
@@ -126,8 +130,24 @@ def cpu_bound_conversion_and_storage(source: str, is_web: bool, html_content: st
             print(f"{doc_tracker} Error:  {msg}")
             return True, source, msg
 
+        # --- THE SECTION 99 FILTER FIX ---
+        filtered_payloads = []
+        for p in payloads:
+            clean_text = re.sub(r'\s+', ' ', p.get('content', '')).strip()
+            breadcrumb = p.get('breadcrumb', '')
+            
+            # If the chunk contains the injected Section 99 table, drop it!
+            if "SECTION 99" not in breadcrumb and "SECTION 99" not in clean_text:
+                filtered_payloads.append(p)
+                
+        payloads = filtered_payloads
+        
+        if not payloads:
+            return True, source, "Skipped (Only metadata found)"
+        # ---------------------------------
+
         clean_and_upsert(COLLECTION_NAME, payloads)
-        real_title = payloads[0].get('document_title', temp_title)
+        real_title = payloads[0].get('document_title', temp_title) if payloads else temp_title
         
         # Live print immediately after embedding
         print(f"{doc_tracker} Successfully Indexed: {real_title} ({len(payloads)} chunks)")
@@ -136,7 +156,6 @@ def cpu_bound_conversion_and_storage(source: str, is_web: bool, html_content: st
     except Exception as e:
         print(f"{doc_tracker}  Error: {str(e)}")
         return False, source, f"Error: {str(e)}"
-
 def run_web_ingestion():
     print(f"\n---  WEB CRAWL MODE (STREAMING PARALLEL) ---")
     all_links = get_all_policy_links(WEB_HUB_URL)
@@ -184,25 +203,43 @@ def run_web_ingestion():
                         return
                     
                     soup = BeautifulSoup(raw_html, 'html.parser')
-                    metadata_url = next((urljoin(url, a['href']) for a in soup.find_all('a', href=True) if "status and details" in a.text.lower()), None)
+                    
+                    # 1. FIND THE HIDDEN LINK 
+                    # [THE FIX]: Added "status & details" to catch ampersands
+                    metadata_url = next((urljoin(url, a['href']) for a in soup.find_all('a', href=True) 
+                                       if "status and details" in a.text.lower() or "status & details" in a.text.lower()), None)
                     
                     if metadata_url:
                         meta_html = await _fetch_html(metadata_url)
                         if meta_html:
                             meta_soup = BeautifulSoup(meta_html, 'html.parser')
-                            meta_div = meta_soup.find('div', class_='document-content')
-                            meta_table = meta_soup.find('table')
-                            if meta_div or meta_table:
-                                header = soup.new_tag("h1")
-                                header.string = "Status and Details Table"
-                                soup.body.append(header)
-                                if meta_div: soup.body.append(meta_div)
-                                if meta_table: soup.body.append(meta_table)
+                            
+                            # 2. AGGRESSIVE EXTRACTION
+                            meta_content = (meta_soup.find('table') or 
+                                            meta_soup.find('div', class_='document-content') or 
+                                            meta_soup.body)
+                            
+                            if meta_content:
+                                # 3. STITCHING & TAGGING
+                                wrapper = soup.new_tag("div", id="injected-status-details", style="border-top: 5px solid red;")
+                                
+                                meta_header = soup.new_tag("h1")
+                                meta_header.string = "SECTION 99 - STATUS AND DETAILS (METADATA)"
+                                
+                                wrapper.append(meta_header)
+                                wrapper.append(meta_content)
+                                
+                                # [THE FIX]: Inject at the VERY TOP (index 0) so Docling doesn't delete it!
+                                if soup.body:
+                                    soup.body.insert(0, wrapper)
                     
+                    # 4. QUEUE FOR CONVERSION
                     await html_queue.put((idx, url, str(soup)))
-            
-            await asyncio.gather(*(fetch_task(i+1, url) for i, url in enumerate(links_to_process)))
-            
+
+            # Run producer tasks concurrently
+            tasks = [asyncio.create_task(fetch_task(i, url)) for i, url in enumerate(links_to_process)]
+            await asyncio.gather(*tasks)
+            # Signal consumers to stop
             for _ in range(MAX_CPU_WORKERS):
                 await html_queue.put((None, None, None))
 
@@ -214,7 +251,7 @@ def run_web_ingestion():
                     html_queue.task_done()
                     break
                 
-                doc_tracker = f"[{idx}/{total_docs}]"
+                doc_tracker = f"[{idx+1}/{total_docs}]"
                 
                 if html_content:
                     success, source, info = await loop.run_in_executor(
@@ -223,7 +260,6 @@ def run_web_ingestion():
                     final_results.append((success, source, info))
                     
                     # --- THE INSTANT CHECKPOINT ---
-                    # Instantly pushes the state to SQLite as soon as Qdrant finishes
                     if success:
                         save_state(source, modified_dates_dict.get(source, "web_processed"))
                 else:
@@ -243,9 +279,8 @@ def run_web_ingestion():
     processed_count = sum(1 for s, _, _ in final_results if s)
     print(f"\n Batch Complete. Processed {processed_count} links.")
 
-
 def run_local_ingestion():
-    print(f"\n---  LOCAL BATCH MODE (MULTIPROCESSING) ---")
+    print(f"\n---  LOCAL BATCH MODE (MULTIPROCESSING + SAFE PDF) ---")
     if not os.path.exists(LOCAL_FOLDER):
         return print(f"Error: {LOCAL_FOLDER} folder missing.")
     
@@ -266,33 +301,119 @@ def run_local_ingestion():
 
     print(f"Skipped {len(files) - total} already ingested files. Processing {total} new files...")
 
-    with concurrent.futures.ProcessPoolExecutor(max_workers=MAX_CPU_WORKERS, initializer=init_worker) as pool:
-        future_to_file = {
-            pool.submit(cpu_bound_conversion_and_storage, os.path.join(LOCAL_FOLDER, f), False, None, f"[{i+1}/{total}]"): f 
-            for i, f in enumerate(pending_files)
-        }
-        
-        # --- INSTANT CHECKPOINT FOR LOCAL FILES ---
-        for future in concurrent.futures.as_completed(future_to_file):
-            filename = future_to_file[future]
+    # --- THE FIX: Separate PDFs from HTMLs ---
+    pdf_files = [f for f in pending_files if f.lower().endswith('.pdf')]
+    html_files = [f for f in pending_files if f.lower().endswith('.html')]
+
+    # 1. Process HTMLs using the Fast Parallel Pool
+    if html_files:
+        print(f"\n--> Processing {len(html_files)} HTML files in PARALLEL...")
+        with concurrent.futures.ProcessPoolExecutor(max_workers=MAX_CPU_WORKERS, initializer=init_worker) as pool:
+            future_to_file = {
+                pool.submit(cpu_bound_conversion_and_storage, os.path.join(LOCAL_FOLDER, f), False, None, f"[HTML {i+1}/{len(html_files)}]"): f 
+                for i, f in enumerate(html_files)
+            }
+            
+            for future in concurrent.futures.as_completed(future_to_file):
+                filename = future_to_file[future]
+                source_path = os.path.join(LOCAL_FOLDER, filename)
+                try:
+                    success, source, info = future.result()
+                    if success:
+                        save_state(source_path, "local_processed")
+                except Exception as e:
+                    print(f"Error retrieving result for {filename}: {e}")
+
+    # 2. Process PDFs SEQUENTIALLY to prevent std::bad_alloc RAM crashes
+    if pdf_files:
+        print(f"\n--> Processing {len(pdf_files)} PDF files SEQUENTIALLY to save RAM...")
+        init_worker() # Initialize the worker in the main thread
+        for i, f in enumerate(pdf_files):
+            filename = f
             source_path = os.path.join(LOCAL_FOLDER, filename)
             try:
-                success, source, info = future.result()
+                # Call the function directly, bypassing the pool entirely
+                success, source, info = cpu_bound_conversion_and_storage(
+                    source_path, False, None, f"[PDF {i+1}/{len(pdf_files)}]"
+                )
                 if success:
                     save_state(source_path, "local_processed")
             except Exception as e:
                 print(f"Error retrieving result for {filename}: {e}")
 
 def run_debug(target):
+    """
+    Diagnostic tool to inspect how Docling/Crawl4AI sees a document.
+    Currently compatible with the standalone _fetch_html (no persistent crawler yet).
+    """
     init_worker() 
+    
     if target.startswith("http"):
         async def quick_fetch():
-            return await _fetch_html(target)
-        html = asyncio.run(quick_fetch())
-        success, _, info = cpu_bound_conversion_and_storage(target, True, html, "[DEBUG]")
-    else:
-        success, _, info = cpu_bound_conversion_and_storage(target, False, None, "[DEBUG]")
+            # Using your current crawler.py which only takes the URL
+            raw_html = await _fetch_html(target)
+            if not raw_html: 
+                return None
+            
+            soup = BeautifulSoup(raw_html, 'html.parser')
+            
+            # Metadata Injection logic for the debugger
+            metadata_url = next((urljoin(target, a['href']) for a in soup.find_all('a', href=True) 
+                               if "status and details" in a.text.lower() or "status & details" in a.text.lower()), None)
+            
+            if metadata_url:
+                meta_html = await _fetch_html(metadata_url)
+                if meta_html:
+                    meta_soup = BeautifulSoup(meta_html, 'html.parser')
+                    meta_content = (meta_soup.find('table') or meta_soup.find('div', class_='document-content') or meta_soup.body)
+                    
+                    if meta_content:
+                        wrapper = soup.new_tag("div")
+                        meta_header = soup.new_tag("h1")
+                        meta_header.string = "SECTION 99 - STATUS AND DETAILS (METADATA)"
+                        wrapper.append(meta_header)
+                        wrapper.append(meta_content)
+                        
+                        if soup.body:
+                            soup.body.insert(0, wrapper) # Inject at the very top!
+                      
+            return str(soup)
 
+        print(f"\n[DEBUG] Fetching and injecting metadata for: {target}")
+        html = asyncio.run(quick_fetch())
+        # Passing HTML to Docling converter
+        success, _, info = cpu_bound_conversion_and_storage(target, True, html, "[DEBUG]")
+        
+    else:
+        # --- THE DOCLING PDF/LOCAL DIAGNOSTIC TOOL ---
+        print(f"\n[DIAGNOSTIC MODE] Opening local file: {target}...")
+        
+        # Access the global worker_converter initialized by init_worker()
+        global worker_converter
+        result = worker_converter.convert(target)
+        
+        from docling.chunking import HierarchicalChunker
+        chunker = HierarchicalChunker()
+        chunks = list(chunker.chunk(result.document))
+        
+        print(f"\n--- DOCLING PARSE TREE ({len(chunks)} Chunks) ---")
+        for i, chunk in enumerate(chunks[:20]): # Limits to first 20 chunks for clarity
+            # Get the heading path if it exists
+            headers = getattr(chunk.meta, 'headings', [])
+            header_str = " > ".join(headers) if headers else "TOP LEVEL (NO HEADING)"
+            
+            # Find out what Docling labeled this specific piece of text
+            labels = [str(getattr(item, "label", "Unknown")) for item in getattr(chunk.meta, "doc_items", [])]
+            label_str = ", ".join(labels) if labels else "NO LABEL"
+            
+            print(f"\nCHUNK [{i}]")
+            print(f"Detected Hierarchy: {header_str}")
+            print(f"Docling Label:      {label_str}")
+            print(f"Raw Text Preview:\n{chunk.text.strip()[:300]}...") # Previews first 300 chars
+            print("-" * 60)
+            
+        print("\nDiagnostic complete. Exiting before database insertion.")
+        return
 if __name__ == "__main__":
     print("========================================")
     print("La Trobe PolicyDB - Core Ingestion")
