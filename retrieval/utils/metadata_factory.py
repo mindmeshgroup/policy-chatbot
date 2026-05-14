@@ -28,6 +28,9 @@ def standardize_date(date_str):
 # ==========================================
 # HYBRID WORKER 1: LLM EXTRACTION
 # ==========================================
+# ==========================================
+# HYBRID WORKER 1: LLM EXTRACTION
+# ==========================================
 def extract_llm_cohort(scouted_text: str, document_title: str) -> dict:
     prompt = f"""
     You are an expert Data Security Classifier for La Trobe University.
@@ -48,7 +51,7 @@ def extract_llm_cohort(scouted_text: str, document_title: str) -> dict:
     MAPPING RULES:
     - If it says "Staff" or "Employees", include ["Academic", "Professional", "Casual"].
     - If it says "Students", include ["Undergrad", "Postgrad", "HDR", "International"].
-    - UNIVERSAL OVERRIDE: If the policy is about Safety, Privacy, Conduct, IT, Integrity, or applies to "everyone", you MUST output ALL 10 roles.
+    - UNIVERSAL OVERRIDE: If the policy is about general Safety, Privacy, IT, or applies to "everyone", you MUST output ALL 10 roles. (NOTE: Do NOT apply this to specific student 'misconduct' procedures).
     
     Document Title: {document_title}
     Text: {scouted_text[:2500]}
@@ -88,26 +91,25 @@ def _get_target_cohort(scouted_context, document_title):
 
     # 3. The Taxonomy Failsafe (Catches what the LLM misses)
     text_to_scan = (document_title + " " + scouted_context).lower()
-    
-   # Define title_lower early so all boundary checks can use it
     title_lower = document_title.lower()
 
-    # UNIVERSAL OVERRIDE (FIXED: We use update() instead of return so it keeps reading)
+    # UNIVERSAL OVERRIDE 
+    # [THE FIX]: Added word boundaries (\b) so "conduct" doesn't trigger on "misconduct" or "semiconductor"
     UNIVERSAL_KEYWORDS = ["all persons", "university community", "everyone", "individuals", "privacy", "safety", "conduct", "whistleblower", "compliance", "facilities", "integrity"]
-    if any(term in text_to_scan for term in UNIVERSAL_KEYWORDS):
+    if any(re.search(rf"\b{term}\b", text_to_scan) for term in UNIVERSAL_KEYWORDS):
         final_set.update(ALL_ROLES)
 
-    # Expand tags based on heavy keywords
+    # Expand tags based on heavy keywords (also using word boundaries for safety)
     STUDENT_KEYWORDS = ["student", "learner", "candidate", "undergrad", "admission", "enrollment", "coursework", "exam", "assessment", "grade", "tuition", "scholarship"]
-    if any(term in text_to_scan for term in STUDENT_KEYWORDS):
+    if any(re.search(rf"\b{term}\b", text_to_scan) for term in STUDENT_KEYWORDS):
         final_set.update(["Undergrad", "Postgrad", "HDR", "International"])
         
     HDR_KEYWORDS = ["hdr", "doctoral", "phd", "research degree", "thesis", "graduate research"]
-    if any(term in text_to_scan for term in HDR_KEYWORDS):
+    if any(re.search(rf"\b{term}\b", text_to_scan) for term in HDR_KEYWORDS):
         final_set.update(["HDR", "Academic"])
         
     STAFF_KEYWORDS = ["staff", "employee", "workplace", "academic", "professional", "casual", "salary", "employment", "leave", "recruitment", "manager", "overtime"]
-    if any(term in text_to_scan for term in STAFF_KEYWORDS):
+    if any(re.search(rf"\b{term}\b", text_to_scan) for term in STAFF_KEYWORDS):
         final_set.update(["Academic", "Professional", "Casual"])
 
     # --- REFINED HR BOUNDARY FIX ---
@@ -123,7 +125,8 @@ def _get_target_cohort(scouted_context, document_title):
     # ---------------------------
 
     # 4. Strict Title Discards (Prevents undergrads from seeing PhD policies)
-    if any(k in title_lower for k in ["graduate", "postgraduate", "hdr", "doctoral", "masters"]):
+    # [THE FIX]: Added "higher degree" and "research degree" correctly to the main discard list
+    if any(k in title_lower for k in ["graduate", "postgraduate", "hdr", "doctoral", "masters", "higher degree", "research degree"]):
         final_set.difference_update(["Undergrad", "Alumni", "Public", "Guest"])
         
     if "undergraduate" in title_lower:
@@ -315,9 +318,22 @@ def _assemble_final_payload(chunks, source_path, metadata, global_cohorts):
         chunk_is_exception = any(word in breadcrumb_lower for word in ["exclusion", "exemption", "exception", "waiver"]) or bool(strict_exception_pattern.search(text))
         chunk_specific_cohorts = set(global_cohorts)
         
-        if any(word in breadcrumb_lower for word in ["staff", "admin", "employee"]): chunk_specific_cohorts.update(["Academic", "Professional"])
-        if any(word in breadcrumb_lower for word in ["student", "candidate", "learner"]): chunk_specific_cohorts.update(["Undergrad", "Postgrad", "HDR", "International"])
-        if "hdr" in breadcrumb_lower or "doctoral" in breadcrumb_lower: chunk_specific_cohorts.update(["HDR", "Academic"])
+        if any(word in breadcrumb_lower for word in ["staff", "admin", "employee"]): 
+            chunk_specific_cohorts.update(["Academic", "Professional"])
+            
+        if any(word in breadcrumb_lower for word in ["student", "candidate", "learner"]): 
+            # THE FIX: Only add student roles if they aren't explicitly banned by the title discards
+            student_roles = {"Undergrad", "Postgrad", "HDR", "International"}
+            title_lower = document_title.lower()
+            
+            # If the document is strictly HDR/Postgrad, do not add Undergrad back in
+            if "Undergrad" not in global_cohorts and any(k in title_lower for k in ["graduate", "postgraduate", "hdr", "doctoral", "masters", "higher degree"]):
+                student_roles.discard("Undergrad")
+            
+            chunk_specific_cohorts.update(student_roles)
+            
+        if "hdr" in breadcrumb_lower or "doctoral" in breadcrumb_lower: 
+            chunk_specific_cohorts.update(["HDR", "Academic"])
 
         chunks_payload.append({
             "content": f"[{breadcrumb}]\n{text}", 
