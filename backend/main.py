@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
 # Import your route
-from routes.ask import router as ask_router
+from backend.routes.ask import router as ask_router
 
 # Rate limiting
 from slowapi import Limiter
