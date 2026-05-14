@@ -5,9 +5,9 @@ import os
 import ollama
 from datetime import datetime
 from docling.chunking import HierarchicalChunker
-
+from urllib.parse import urlparse, parse_qs
 # --- CONFIGURATION ---
-EXTRACTOR_MODEL = "llama3"   
+EXTRACTOR_MODEL = "llama3"  
 
 def standardize_date(date_str):
     if not date_str or str(date_str).lower() in ["none", "null", "unknown", "not specified", ""]: 
@@ -171,9 +171,7 @@ def extract_metadata_and_chunk(docling_document, source_path: str):
 # SPECIALIST 1: WEB EXTRACTOR
 # ==========================================
 def _extract_web_metadata(chunks, source_path):
-    import os
-    import re
-
+    # 1. Try to find the title in the Docling headers
     document_title = "Unknown Policy"
     for chunk in chunks[:10]:
         if hasattr(chunk.meta, 'headings') and chunk.meta.headings:
@@ -182,6 +180,19 @@ def _extract_web_metadata(chunks, source_path):
                 document_title = candidate
                 break
                 
+    # 2. THE TITLE RESCUE LOGIC: If Docling failed, extract it from the path!
+    if document_title == "Unknown Policy":
+        if source_path.startswith("http"):
+            parsed_url = urlparse(source_path)
+            query_params = parse_qs(parsed_url.query)
+            if 'id' in query_params:
+                document_title = f"Policy ID: {query_params['id'][0]}"
+            else:
+                document_title = os.path.basename(parsed_url.path) or "Web Document"
+        else:
+            document_title = os.path.basename(source_path)
+
+    # 3. Context gathering
     safe_top = "\n".join([c.text for c in chunks[:5]])
     safe_bottom = "\n".join([c.text for c in chunks[-5:]]) if len(chunks) > 5 else ""
     
@@ -196,9 +207,9 @@ def _extract_web_metadata(chunks, source_path):
 
     scouted_context = f"{safe_top}\n" + "\n".join(scouted_middle) + f"\n{safe_bottom}"
 
+    # 4. Regex Regex extraction
     eff_match = re.search(r'Effective Date.*?(\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+\s+\d{4}|\d{4}-\d{2}-\d{2})', scouted_context, re.IGNORECASE)
     rev_match = re.search(r'Review Date.*?(\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+\s+\d{4}|\d{4}-\d{2}-\d{2})', scouted_context, re.IGNORECASE)
-    
     mgr_match = re.search(r'Responsible Manager.*?\[(.*?)\]\s*\(mailto:(.*?)\)', scouted_context, re.IGNORECASE)
     
     # THE ULTIMATE ENQUIRIES FIX
@@ -216,7 +227,7 @@ def _extract_web_metadata(chunks, source_path):
         if enq_match_plain:
             final_enq_name = enq_match_plain.group(1).strip()
 
-    # THE VICE-CHANCELLOR FIX (Added hyphen to regex)
+    # THE VICE-CHANCELLOR FIX
     appr_match = re.search(r'Approval Authority.*?=\s*([A-Za-z\s\-]+)', scouted_context, re.IGNORECASE)
     status_match = re.search(r'Status, 1 = \[?(.*?)\]?(\(http|\.)', scouted_context, re.IGNORECASE)
 

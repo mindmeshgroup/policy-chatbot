@@ -2,6 +2,7 @@ import os
 import aiohttp
 import asyncio
 import hashlib
+import random
 from urllib.parse import urlparse, parse_qs, urljoin
 from bs4 import BeautifulSoup
 from crawl4ai import AsyncWebCrawler, CrawlerRunConfig
@@ -9,7 +10,19 @@ from crawl4ai import AsyncWebCrawler, CrawlerRunConfig
 WAIT_JS = "await new Promise(r => setTimeout(r, 2000));"
 
 # SEMAPHORE: Limits concurrent browser tabs to 5 
-browser_semaphore = asyncio.Semaphore(5)
+_browser_semaphore = None
+_semaphore_loop = None
+
+def get_browser_semaphore():
+    global _browser_semaphore, _semaphore_loop
+    current_loop = asyncio.get_running_loop()
+    
+    # If the semaphore doesn't exist, OR if it belongs to an old/dead loop, create a new one!
+    if _browser_semaphore is None or _semaphore_loop != current_loop:
+        _browser_semaphore = asyncio.Semaphore(5)
+        _semaphore_loop = current_loop
+        
+    return _browser_semaphore
 
 # ==========================================
 # HELPER FUNCTIONS (Moved from ingest.py)
@@ -42,7 +55,6 @@ async def fetch_with_retry(session: aiohttp.ClientSession, url: str, retries=3, 
 async def check_if_updated(url: str, ledger: dict) -> tuple:
     """Change Data Capture (CDC) check. Returns (needs_update, url, new_hash)."""
     try:
-        # Use aiohttp session for fast, non-browser HTML fetching
         async with aiohttp.ClientSession() as session:
             raw_html = await fetch_with_retry(session, url)
             if not raw_html:
@@ -70,7 +82,6 @@ async def check_if_updated(url: str, ledger: dict) -> tuple:
                 except Exception:
                     pass 
 
-            # Strip noisy tags before hashing
             for noisy_tag in soup(['nav', 'footer', 'header', 'aside', 'script', 'style', 'meta']):
                 noisy_tag.decompose()
                 
@@ -112,7 +123,6 @@ async def _scout_links(base_url: str) -> list:
         
         for link in internal_links:
             raw_href = link.get('href', '')
-            
             clean_href = raw_href.split('#')[0] 
             
             if not clean_href:
@@ -120,10 +130,11 @@ async def _scout_links(base_url: str) -> list:
                 
             clean_href_lower = clean_href.lower()
             
-            # skips non-policy administrative pages and pagination links
+            # [THE FIX] Poisoned Link Trap: Expanded to include non-HTML files
             blacklist = [
                 'login', 'contact', 'search', 'intranet', 'feedback', 
-                'help', 'mailto:', 'print', 'summary=', '/browse', 'home.php'
+                'help', 'mailto:', 'print', 'summary=', '/browse', 'home.php',
+                '.jpg', '.png', '.pdf', '.docx', '.xlsx', '.zip'
             ]
             
             if not any(junk in clean_href_lower for junk in blacklist):
@@ -131,42 +142,48 @@ async def _scout_links(base_url: str) -> list:
                     
         return list(policy_urls)
 
-async def _fetch_html(url: str, retries: int = 2) -> str:
-    """Fetching - Uses Crawl4AI to get the raw HTML DOM string. Includes Semaphore, Retries & Fault Isolation."""
+# [THE FIX] Browser Thrashing: We now pass the 'crawler' object as a parameter
+async def _fetch_html(url: str, crawler: AsyncWebCrawler, retries: int = 2) -> str:
+    """Fetching - Uses Crawl4AI to get the raw HTML DOM string."""
     
-    # 1. IRONCLAD CONFIG: 60s timeout to prevent ERR_CONNECTION_TIMED_OUT and "magic" to bypass Anti-Bot
     config = CrawlerRunConfig(
         js_code=WAIT_JS,
         page_timeout=60000, 
         magic=True  
     )
     
-    async with browser_semaphore:
+    async with get_browser_semaphore():
+        # [THE FIX] WAF Politeness Jitter: Wait 0.5 to 1.5 seconds to look human
+        await asyncio.sleep(random.uniform(0.5, 1.5))
+        
         for attempt in range(retries):
             try:
-                # 2. SILENCE LOGGER: verbose=False stops Crawl4AI from printing massive error walls
-                async with AsyncWebCrawler(verbose=False) as crawler:
-                    result = await crawler.arun(url=url, config=config)
-                    
-                    if result.success:
-                        return result.html 
+                # We no longer instantiate AsyncWebCrawler here. We use the one passed in!
+                result = await crawler.arun(url=url, config=config)
+                
+                if result.success:
+                    return result.html 
+                else:
+                    if attempt == retries - 1:
+                        print(f"    [FAULT ISOLATED] Crawl4AI failed on {url}")
                     else:
-                        if attempt == retries - 1:
-                            print(f"    [FAULT ISOLATED] Crawl4AI failed on {url}")
-                        else:
-                            await asyncio.sleep(3) # Wait 3 seconds before retrying
+                        await asyncio.sleep(3) 
             except Exception as e:
                 if attempt == retries - 1:
-                    print(f"    [FAULT ISOLATED] Timeout or Exception on {url}")
+                    print(f"    [FAULT ISOLATED] Timeout or Exception on {url}: {e}")
                 else:
                     await asyncio.sleep(3)
         
-        # If all retries fail, safely return an empty string so the pipeline survives
         return ""
+
 def get_all_policy_links(base_url: str) -> list:
     """Synchronous wrapper for _scout_links"""
     return asyncio.run(_scout_links(base_url))
 
+# Updated wrapper to handle the crawler instantiation for standalone calls
 def get_raw_html(url: str) -> str:
-    """Synchronous wrapper for _fetch_html"""
-    return asyncio.run(_fetch_html(url))
+    """Synchronous wrapper for _fetch_html (creates temporary crawler)"""
+    async def run_standalone():
+        async with AsyncWebCrawler(verbose=False) as temp_crawler:
+            return await _fetch_html(url, temp_crawler)
+    return asyncio.run(run_standalone())

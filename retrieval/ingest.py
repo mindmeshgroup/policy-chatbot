@@ -3,9 +3,11 @@ import tempfile
 import asyncio  
 import concurrent.futures
 import re
+import multiprocessing
+import psutil
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
-
+from crawl4ai import AsyncWebCrawler
 # imports
 from retrieval.utils.metadata_factory import extract_metadata_and_chunk
 from retrieval.utils.vector_engine import clean_and_upsert
@@ -24,9 +26,18 @@ COLLECTION_NAME = "university_policies"
 WEB_HUB_URL = "https://policies.latrobe.edu.au/browse"
 LOCAL_FOLDER = "./policy_pdfs/"
 
-MAX_CPU_WORKERS = 2 
-MAX_CONCURRENT_TASKS = 10 
+ # Dynamically calculate the most efficient worker limit based on your hardware
+try:
+    total_cores = multiprocessing.cpu_count()
+    total_ram_gb = psutil.virtual_memory().total / (1024 ** 3)
+    # ~2GB RAM per worker, leaving 4GB for the OS to stay safe
+    safe_ram_workers = int((total_ram_gb - 4) / 2)
+    MAX_CPU_WORKERS = max(1, min(total_cores - 1, safe_ram_workers))
+except:
+    MAX_CPU_WORKERS = 3 # Safe fallback if psutil fails
 
+MAX_CONCURRENT_TASKS = 10 
+print(f"[*] Hardware optimally scaled: Running {MAX_CPU_WORKERS} parallel CPU workers.")
 worker_converter = None
 
 def init_worker():
@@ -142,54 +153,60 @@ def run_web_ingestion():
 
     async def process_batch():
         html_queue = asyncio.Queue(maxsize=MAX_CONCURRENT_TASKS)
-        final_results = []
+        
+        # 1. Use thread-safe lists that can be accessed globally by the consumers
+        successful_links = []
+        failed_links = []
         
         async def producer():
             sem = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
-            async def fetch_task(idx, url):
-                async with sem:
-                    raw_html = await _fetch_html(url)
-                    if not raw_html:
-                        await html_queue.put((idx, url, None))
-                        return
-                    
-                    soup = BeautifulSoup(raw_html, 'html.parser')
-                    
-                    # 1. FIND THE HIDDEN LINK 
-                    metadata_url = next((urljoin(url, a['href']) for a in soup.find_all('a', href=True) 
-                                       if "status and details" in a.text.lower() or "status & details" in a.text.lower()), None)
-                    
-                    if metadata_url:
-                        meta_html = await _fetch_html(metadata_url)
-                        if meta_html:
-                            meta_soup = BeautifulSoup(meta_html, 'html.parser')
-                            
-                            # 2. AGGRESSIVE EXTRACTION
-                            meta_content = (meta_soup.find('table') or 
-                                            meta_soup.find('div', class_='document-content') or 
-                                            meta_soup.body)
-                            
-                            if meta_content:
-                                # 3. STITCHING & TAGGING
-                                wrapper = soup.new_tag("div", id="injected-status-details", style="border-top: 5px solid red;")
+            async with AsyncWebCrawler(verbose=False) as master_crawler:
+                async def fetch_task(idx, url):
+                    async with sem:
+                        raw_html = await _fetch_html(url, master_crawler)
+                        if not raw_html:
+                            await html_queue.put((idx, url, None))
+                            return
+                        # ==========================================
+                        # THE POISONED DATA FILTER (SSO LOGIN BLOCK)
+                        # ==========================================
+                        login_keywords = [
+                            "microsoft.com/en-GB/servicesagreement", 
+                            "Sign in to your account",
+                            "login.microsoftonline.com"
+                        ]
+                        
+                        if any(keyword in raw_html for keyword in login_keywords):
+                            print(f"    [!] Skipping {url} - Redirected to SSO Login.")
+                            await html_queue.put((idx, url, None)) # Passes None so the consumer skips it
+                            return
+                        # ==========================================
+                        
+                        soup = BeautifulSoup(raw_html, 'html.parser')
+                        metadata_url = next((urljoin(url, a['href']) for a in soup.find_all('a', href=True) 
+                                           if "status and details" in a.text.lower() or "status & details" in a.text.lower()), None)
+                        
+                        if metadata_url:
+                            meta_html = await _fetch_html(metadata_url, master_crawler)
+                            if meta_html:
+                                meta_soup = BeautifulSoup(meta_html, 'html.parser')
+                                meta_content = (meta_soup.find('table') or meta_soup.find('div', class_='document-content') or meta_soup.body)
                                 
-                                meta_header = soup.new_tag("h1")
-                                meta_header.string = "SECTION 99 - STATUS AND DETAILS (METADATA)"
-                                
-                                wrapper.append(meta_header)
-                                wrapper.append(meta_content)
-                                
-                                # Inject at the VERY TOP (index 0) so Docling doesn't delete it!
-                                if soup.body:
-                                    soup.body.insert(0, wrapper)
-                    
-                    # 4. QUEUE FOR CONVERSION
-                    await html_queue.put((idx, url, str(soup)))
+                                if meta_content:
+                                    wrapper = soup.new_tag("div", id="injected-status-details", style="border-top: 5px solid red;")
+                                    meta_header = soup.new_tag("h1")
+                                    meta_header.string = "SECTION 99 - STATUS AND DETAILS (METADATA)"
+                                    wrapper.append(meta_header)
+                                    wrapper.append(meta_content)
+                                    
+                                    if soup.body:
+                                        soup.body.insert(0, wrapper)
+                        
+                        await html_queue.put((idx, url, str(soup)))
 
-            # Run producer tasks concurrently
-            tasks = [asyncio.create_task(fetch_task(i, url)) for i, url in enumerate(links_to_process)]
-            await asyncio.gather(*tasks)
-            # Signal consumers to stop
+                tasks = [asyncio.create_task(fetch_task(i, url)) for i, url in enumerate(links_to_process)]
+                await asyncio.gather(*tasks)
+                
             for _ in range(MAX_CPU_WORKERS):
                 await html_queue.put((None, None, None))
 
@@ -205,38 +222,43 @@ def run_web_ingestion():
                 
                 if html_content:
                     try:
-                        # OOM Silent Deadlocks (Add timeout)
+                        # 10-minute timeout
                         success, source, info = await asyncio.wait_for(
                             loop.run_in_executor(
                                 pool, cpu_bound_conversion_and_storage, url, True, html_content, doc_tracker
                             ),
-                            timeout=300 
+                            timeout=600 
                         )
-                        final_results.append((success, source, info))
                         
-                        # --- THE INSTANT CHECKPOINT ---
+                        # 2. Append directly to the outer lists
                         if success:
+                            successful_links.append(source)
                             state_val = modified_dates_dict.get(source, "web_processed")
-                            # Blocking the Async Loop (Offload SQLite write)
                             await asyncio.to_thread(save_state, source, state_val)
+                        else:
+                            failed_links.append(source)
+                            
                     except asyncio.TimeoutError:
-                        final_results.append((False, url, "Process Timeout or Worker Killed"))
+                        print(f"{doc_tracker}  Error: Process Timeout or Worker Killed on {url}")
+                        failed_links.append(url)
                 else:
-                    final_results.append((False, url, "Network Fetch Failed"))
+                    failed_links.append(url)
                 
                 html_queue.task_done()
 
         with concurrent.futures.ProcessPoolExecutor(max_workers=MAX_CPU_WORKERS, initializer=init_worker) as pool:
             prod_task = asyncio.create_task(producer())
             cons_tasks = [asyncio.create_task(consumer(pool)) for _ in range(MAX_CPU_WORKERS)]
+            
+            # Wait for all tasks to finish
             await asyncio.gather(prod_task, *cons_tasks)
             
-        return final_results
+        # 3. Return the exact counts
+        return len(successful_links), len(failed_links)
 
-    final_results = asyncio.run(process_batch())
-
-    processed_count = sum(1 for s, _, _ in final_results if s)
-    print(f"\n Batch Complete. Processed {processed_count} links.")
+    # 4. Update the final print statement
+    success_count, fail_count = asyncio.run(process_batch())
+    print(f"\n Batch Complete. Successfully Processed: {success_count} | Failed/Timed Out: {fail_count}")
 
 # --- NEW UNIFIED LOCAL HELPER ---
 def _process_local_batch(files, is_parallel=True):
@@ -318,34 +340,36 @@ def run_debug(target):
     
     if target.startswith("http"):
         async def quick_fetch():
-            # Using your current crawler.py which only takes the URL
-            raw_html = await _fetch_html(target)
-            if not raw_html: 
-                return None
-            
-            soup = BeautifulSoup(raw_html, 'html.parser')
-            
-            # Metadata Injection logic for the debugger
-            metadata_url = next((urljoin(target, a['href']) for a in soup.find_all('a', href=True) 
-                               if "status and details" in a.text.lower() or "status & details" in a.text.lower()), None)
-            
-            if metadata_url:
-                meta_html = await _fetch_html(metadata_url)
-                if meta_html:
-                    meta_soup = BeautifulSoup(meta_html, 'html.parser')
-                    meta_content = (meta_soup.find('table') or meta_soup.find('div', class_='document-content') or meta_soup.body)
-                    
-                    if meta_content:
-                        wrapper = soup.new_tag("div")
-                        meta_header = soup.new_tag("h1")
-                        meta_header.string = "SECTION 99 - STATUS AND DETAILS (METADATA)"
-                        wrapper.append(meta_header)
-                        wrapper.append(meta_content)
+            # Create a single temporary crawler for the debug session
+            async with AsyncWebCrawler(verbose=False) as debug_crawler:
+                raw_html = await _fetch_html(target, debug_crawler)
+                if not raw_html: 
+                    return None
+                
+                soup = BeautifulSoup(raw_html, 'html.parser')
+                
+                # Metadata Injection logic for the debugger
+                metadata_url = next((urljoin(target, a['href']) for a in soup.find_all('a', href=True) 
+                                   if "status and details" in a.text.lower() or "status & details" in a.text.lower()), None)
+                
+                if metadata_url:
+                    # Pass the debug_crawler here as well
+                    meta_html = await _fetch_html(metadata_url, debug_crawler)
+                    if meta_html:
+                        meta_soup = BeautifulSoup(meta_html, 'html.parser')
+                        meta_content = (meta_soup.find('table') or meta_soup.find('div', class_='document-content') or meta_soup.body)
                         
-                        if soup.body:
-                            soup.body.insert(0, wrapper) # Inject at the very top!
-                      
-            return str(soup)
+                        if meta_content:
+                            wrapper = soup.new_tag("div")
+                            meta_header = soup.new_tag("h1")
+                            meta_header.string = "SECTION 99 - STATUS AND DETAILS (METADATA)"
+                            wrapper.append(meta_header)
+                            wrapper.append(meta_content)
+                            
+                            if soup.body:
+                                soup.body.insert(0, wrapper) # Inject at the very top!
+                          
+                return str(soup)
 
         print(f"\n[DEBUG] Fetching and injecting metadata for: {target}")
         html = asyncio.run(quick_fetch())
@@ -382,7 +406,6 @@ def run_debug(target):
             
         print("\nDiagnostic complete. Exiting before database insertion.")
         return
-
 if __name__ == "__main__":
     print("========================================")
     print("La Trobe PolicyDB - Core Ingestion")
