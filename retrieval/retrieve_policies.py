@@ -1,5 +1,6 @@
 import json
 import ollama
+from ollama import AsyncClient # Add this to imports
 import asyncio
 from typing import List, Dict
 from qdrant_client import AsyncQdrantClient
@@ -81,7 +82,7 @@ async def fetch_exception_track(dense_vector, sparse_vector_obj, rbac_filter):
                 using="text-dense",
                 filter=exception_filter,
                 limit=2,
-                # NO score_threshold: We "Always-Fetch" overrides even if semantic match is lower
+                score_threshold=0.20, # <--- Add a safety net here
                 params=models.SearchParams(
                     quantization=models.QuantizationSearchParams(
                         ignore=False, rescore=True, oversampling=3.0
@@ -105,17 +106,25 @@ async def retrieve_policies(question: str, role: str = "Student", max_k: int = 3
     Now fully asynchronous with parallel CRAG execution.
     """
     # 1. PRE-RETRIEVAL VALIDATION
+    VALID_ROLES = {"Student", "Academic", "Professional", "Casual", "Public", "Guest"}
+    if role not in VALID_ROLES:
+        print(f"[SECURITY WARNING] Invalid role '{role}' detected. Demoting to Public.")
+        role = "Public"
+        
     cleaned_query = question.strip()
     if len(cleaned_query.split()) < 2:
         print(f"[REJECTED] Query '{cleaned_query}' lacks sufficient semantic density.")
         return []
 
-    # 2. VECTOR GENERATION (Synchronous blocking, but safe for single queries)
+    # 2. ASYNC VECTOR GENERATION
     try:
-        dense_response = ollama.embeddings(model=DENSE_MODEL, prompt=cleaned_query)
+        # Use Ollama's Async Client
+        ollama_client = AsyncClient()
+        dense_response = await ollama_client.embeddings(model=DENSE_MODEL, prompt=cleaned_query)
         dense_vector = dense_response['embedding']
         
-        sparse_generator = list(sparse_model.embed([cleaned_query]))
+        # Offload CPU-heavy FastEmbed to a background thread
+        sparse_generator = await asyncio.to_thread(lambda: list(sparse_model.embed([cleaned_query])))
         sparse_result = sparse_generator[0]
         
         sparse_vector_obj = models.SparseVector(
@@ -143,19 +152,23 @@ async def retrieve_policies(question: str, role: str = "Student", max_k: int = 3
         return []
 
     # 5. CONTEXT BUNDLING & DEDUPLICATION
-    final_points = []
+    standard_chunks = []
+    exception_chunks = []
     seen_ids = set()
 
-    for point in standard_results.points:
-        final_points.append(point)
-        seen_ids.add(point.payload.get("chunk_id"))
+    all_points = list(standard_results.points) + list(exception_results.points)
 
-    for exp_point in exception_results.points:
-        chunk_id = exp_point.payload.get("chunk_id")
+    for point in all_points:
+        chunk_id = point.payload.get("chunk_id")
         if chunk_id not in seen_ids:
-            # Append exceptions to the very bottom to exploit LLM Recency Bias
-            final_points.append(exp_point)
             seen_ids.add(chunk_id)
+            if point.payload.get("is_exception") == True:
+                exception_chunks.append(point)
+            else:
+                standard_chunks.append(point)
+
+    # Force exceptions to the absolute bottom
+    final_points = standard_chunks + exception_chunks
 
     # 6. DATA CONTRACT ENFORCEMENT
     formatted_results = []
