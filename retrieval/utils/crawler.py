@@ -52,16 +52,17 @@ async def fetch_with_retry(session: aiohttp.ClientSession, url: str, retries=3, 
             await asyncio.sleep(backoff_factor * (attempt + 1))
     return ""
 
-async def check_if_updated(url: str, ledger: dict) -> tuple:
+async def check_if_updated(url: str, ledger: dict) -> tuple[bool, str, str]:
     """Change Data Capture (CDC) check. Returns (needs_update, url, new_hash)."""
     try:
         async with aiohttp.ClientSession() as session:
             raw_html = await fetch_with_retry(session, url)
             if not raw_html:
-                return False, url, None
+                return False, url, ""
 
             soup = BeautifulSoup(raw_html, 'html.parser')
             
+            # --- 1. THE METADATA FETCH ---
             metadata_url = None
             for a_tag in soup.find_all('a', href=True):
                 if "status and details" in a_tag.text.lower():
@@ -82,19 +83,23 @@ async def check_if_updated(url: str, ledger: dict) -> tuple:
                 except Exception:
                     pass 
 
+            # --- 2. NOISE REDUCTION ---
             for noisy_tag in soup(['nav', 'footer', 'header', 'aside', 'script', 'style', 'meta']):
                 noisy_tag.decompose()
                 
             main_content = soup.find('div', class_='document-content') or soup.find('main') or soup.body
             
+            # --- 3. THE ATTRIBUTE STRIPPER ---
             if main_content:
                 for tag in main_content.find_all(True):
                     tag.attrs = {} 
-                
+            
+            # --- 4. THE ULTIMATE HASH ---
             content_to_hash = str(main_content) + meta_html_string
             page_hash = hashlib.md5(content_to_hash.encode('utf-8')).hexdigest()
             soup.decompose() 
             
+            # --- 5. THE LEDGER DECISION ---
             if ledger.get(url) == page_hash:
                 return False, url, page_hash 
                 
@@ -102,7 +107,8 @@ async def check_if_updated(url: str, ledger: dict) -> tuple:
             
     except Exception as e:
         print(f"    [CDC Error] {url}: {e}")
-        return False, url, None 
+        # Default to True so we process the file if the CDC check fails
+        return True, url, ""
 
 # ==========================================
 # CORE CRAWLER FUNCTIONS

@@ -4,10 +4,10 @@ import re
 import os
 import ollama
 from datetime import datetime
-from docling.chunking import HierarchicalChunker
+from docling_core.transforms.chunker import HierarchicalChunker
 from urllib.parse import urlparse, parse_qs
 # --- CONFIGURATION ---
-EXTRACTOR_MODEL = "llama3"  
+EXTRACTOR_MODEL = "llama3.2"  
 
 def standardize_date(date_str):
     if not date_str or str(date_str).lower() in ["none", "null", "unknown", "not specified", ""]: 
@@ -25,9 +25,6 @@ def standardize_date(date_str):
     except Exception: 
         return None
 
-# ==========================================
-# HYBRID WORKER 1: LLM EXTRACTION
-# ==========================================
 # ==========================================
 # HYBRID WORKER 1: LLM EXTRACTION
 # ==========================================

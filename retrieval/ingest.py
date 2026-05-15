@@ -5,6 +5,7 @@ import concurrent.futures
 import re
 import multiprocessing
 import psutil
+import hashlib
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from crawl4ai import AsyncWebCrawler
@@ -30,16 +31,27 @@ LOCAL_FOLDER = "./policy_pdfs/"
 try:
     total_cores = multiprocessing.cpu_count()
     total_ram_gb = psutil.virtual_memory().total / (1024 ** 3)
-    # ~2GB RAM per worker, leaving 4GB for the OS to stay safe
-    safe_ram_workers = int((total_ram_gb - 4) / 2)
+    
+    # NEW MATH: ~4GB RAM per Docling worker, leaving 6GB for OS + Ollama
+    safe_ram_workers = int((total_ram_gb - 6) / 4)
+    
     MAX_CPU_WORKERS = max(1, min(total_cores - 1, safe_ram_workers))
+    # Optional: Hard cap it at 3 for local laptop execution
+    MAX_CPU_WORKERS = min(MAX_CPU_WORKERS, 3) 
 except:
-    MAX_CPU_WORKERS = 3 # Safe fallback if psutil fails
+    MAX_CPU_WORKERS = 2 # Safer fallback
 
 MAX_CONCURRENT_TASKS = 10 
 print(f"[*] Hardware optimally scaled: Running {MAX_CPU_WORKERS} parallel CPU workers.")
-worker_converter = None
-
+def get_file_hash(filepath: str) -> str:
+    """Generates an MD5 check-digit hash of a physical file's true content."""
+    hasher = hashlib.md5()
+    with open(filepath, 'rb') as f:
+        buf = f.read(65536) 
+        while len(buf) > 0:
+            hasher.update(buf)
+            buf = f.read(65536)
+    return hasher.hexdigest()
 def init_worker():
     global worker_converter
     from docling.document_converter import DocumentConverter
@@ -98,7 +110,7 @@ def cpu_bound_conversion_and_storage(source: str, is_web: bool, html_content: st
             return True, source, "Skipped (Only metadata found)"
         # ---------------------------------
 
-        clean_and_upsert(COLLECTION_NAME, payloads)
+        clean_and_upsert(COLLECTION_NAME, payloads,source)
         real_title = payloads[0].get('document_title', temp_title) if payloads else temp_title
         
         # Live print immediately after embedding
@@ -112,12 +124,13 @@ def cpu_bound_conversion_and_storage(source: str, is_web: bool, html_content: st
 def run_web_ingestion():
     print(f"\n---  WEB CRAWL MODE (STREAMING PARALLEL) ---")
     all_links = get_all_policy_links(WEB_HUB_URL)
-    target_urls = [url for url in all_links if "/document/view.php?id=" in url][:10]
+    target_urls = [url for url in all_links if "/document/view.php?id=" in url]
     
     if not target_urls:
         return print("No policy links found.")
 
-    test_urls = sorted(list(set(target_urls)))
+    #test_urls = sorted(list(set(target_urls)))[:10]
+    test_urls = ["https://policies.latrobe.edu.au/document/view.php?id=204"]
     ledger = get_all_states()
     
     print(f"   Running Parallel CDC Check for {len(test_urls)} policies...")
@@ -222,12 +235,12 @@ def run_web_ingestion():
                 
                 if html_content:
                     try:
-                        # 10-minute timeout
+                        # 15-minute timeout
                         success, source, info = await asyncio.wait_for(
                             loop.run_in_executor(
                                 pool, cpu_bound_conversion_and_storage, url, True, html_content, doc_tracker
                             ),
-                            timeout=600 
+                            timeout=900
                         )
                         
                         # 2. Append directly to the outer lists
@@ -269,33 +282,57 @@ def _process_local_batch(files, is_parallel=True):
     if is_parallel:
         print(f"\n--> Processing {len(files)} files in PARALLEL...")
         with concurrent.futures.ProcessPoolExecutor(max_workers=MAX_CPU_WORKERS, initializer=init_worker) as pool:
+            
+            # Note: `files` is now a list of tuples: (filename, current_hash)
+            # We map the Future object to the entire tuple so we can access the hash later
             future_to_file = {
-                pool.submit(cpu_bound_conversion_and_storage, os.path.join(LOCAL_FOLDER, f), False, None, f"[{'HTML' if f.endswith('.html') else 'FILE'} {i+1}/{len(files)}]"): f 
+                pool.submit(
+                    cpu_bound_conversion_and_storage, 
+                    os.path.join(LOCAL_FOLDER, f[0]), # f[0] is the filename
+                    False, 
+                    None, 
+                    f"[{'HTML' if f[0].endswith('.html') else 'FILE'} {i+1}/{len(files)}]"
+                ): f 
                 for i, f in enumerate(files)
             }
             
             for future in concurrent.futures.as_completed(future_to_file):
-                filename = future_to_file[future]
+                # Retrieve the tuple (filename, current_hash) from the dictionary
+                file_tuple = future_to_file[future]
+                filename = file_tuple[0]
+                current_hash = file_tuple[1]
+                
                 source_path = os.path.join(LOCAL_FOLDER, filename)
+                abs_path = os.path.abspath(source_path)
+                
                 try:
                     success, source, info = future.result()
                     if success:
-                        save_state(source_path, "local_processed")
+                        # Ensure we save using the absolute path and the dynamic content hash
+                        save_state(abs_path, current_hash)
                 except Exception as e:
                     print(f"Error retrieving result for {filename}: {e}")
+                    
     else:
         print(f"\n--> Processing {len(files)} files SEQUENTIALLY to save RAM...")
         init_worker() # Initialize the worker in the main thread
-        for i, f in enumerate(files):
-            filename = f
+        
+        # `files` is a list of tuples: (filename, current_hash)
+        for i, item in enumerate(files):
+            filename = item[0]
+            current_hash = item[1]
+            
             source_path = os.path.join(LOCAL_FOLDER, filename)
+            abs_path = os.path.abspath(source_path)
+            
             try:
                 # Call the function directly, bypassing the pool entirely
                 success, source, info = cpu_bound_conversion_and_storage(
                     source_path, False, None, f"[PDF {i+1}/{len(files)}]"
                 )
                 if success:
-                    save_state(source_path, "local_processed")
+                    # Ensure we save using the absolute path and the dynamic content hash
+                    save_state(abs_path, current_hash)
             except Exception as e:
                 print(f"Error retrieving result for {filename}: {e}")
 
@@ -306,14 +343,19 @@ def run_local_ingestion():
     
     files = [f for f in os.listdir(LOCAL_FOLDER) if f.lower().endswith(('.pdf', '.html'))]
     ledger = get_all_states()
-    pending_files = []
+    pending_files = [] # Will hold tuples of (filename, current_hash)
+    
     for f in files:
         source_path = os.path.join(LOCAL_FOLDER, f)
-        if source_path not in ledger:
-            pending_files.append(f)
-        else:
+        abs_path = os.path.abspath(source_path)
+        
+        current_hash = get_file_hash(abs_path)
+        
+        if abs_path in ledger and ledger[abs_path] == current_hash:
             doc_title = parse_document_title(source_path)
-            print(f"[SKIPPED] {doc_title} (Already in ledger)")
+            print(f"[SKIPPED] {doc_title} (Content unmodified)")
+        else:
+            pending_files.append((f, current_hash))
             
     total = len(pending_files)
     
@@ -322,13 +364,10 @@ def run_local_ingestion():
 
     print(f"Skipped {len(files) - total} already ingested files. Processing {total} new files...")
 
-    pdf_files = [f for f in pending_files if f.lower().endswith('.pdf')]
-    html_files = [f for f in pending_files if f.lower().endswith('.html')]
+    pdf_files = [f for f in pending_files if f[0].lower().endswith('.pdf')]
+    html_files = [f for f in pending_files if f[0].lower().endswith('.html')]
 
-    # 1. Process HTMLs using the Fast Parallel Pool
     _process_local_batch(html_files, is_parallel=True)
-
-    # 2. Process PDFs SEQUENTIALLY to prevent std::bad_alloc RAM crashes
     _process_local_batch(pdf_files, is_parallel=False)
 
 def run_debug(target):
@@ -384,7 +423,7 @@ def run_debug(target):
         global worker_converter
         result = worker_converter.convert(target)
         
-        from docling.chunking import HierarchicalChunker
+        from docling_core.transforms.chunker import HierarchicalChunker
         chunker = HierarchicalChunker()
         chunks = list(chunker.chunk(result.document))
         
