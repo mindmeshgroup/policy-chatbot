@@ -438,6 +438,18 @@ def _assemble_final_payload(chunks, source_path, metadata, global_cohorts):
         breadcrumb_lower = breadcrumb.lower()
         is_real_table = any("table" in str(getattr(item, "label", "")).lower() for item in getattr(chunk.meta, "doc_items", []))
 
+        # --- NEW: ADVANCED TABLE EXTRACTION ---
+        if is_real_table and hasattr(chunk.meta, "doc_items"):
+            table_markdowns = []
+            for item in chunk.meta.doc_items:
+                if "table" in str(getattr(item, "label", "")).lower() and hasattr(item, "export_to_markdown"):
+                    table_markdowns.append(item.export_to_markdown())
+            
+            # If we found markdown tables, overwrite the flat text!
+            if table_markdowns:
+                text = "\n\n".join(table_markdowns)
+        # --------------------------------------
+
         chunk_is_exception = any(word in breadcrumb_lower for word in ["exclusion", "exemption", "exception", "waiver"]) or bool(strict_exception_pattern.search(text))
         chunk_specific_cohorts = set(global_cohorts)
         
