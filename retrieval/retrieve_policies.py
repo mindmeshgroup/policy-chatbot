@@ -7,6 +7,7 @@ from qdrant_client import AsyncQdrantClient
 from qdrant_client import models
 from fastembed import SparseTextEmbedding
 
+from retrieval.utils.query_rewriter import rewrite_query
 # --- CONFIGURATION ---
 # IMPORTANT: Switched to AsyncQdrantClient for parallel CRAG queries
 client = AsyncQdrantClient(url="http://localhost:6333")
@@ -103,9 +104,9 @@ async def fetch_exception_track(dense_vector, sparse_vector_obj, rbac_filter):
 async def retrieve_policies(question: str, role: str = "Student", max_k: int = 3) -> List[Dict]:
     """
     Executes a True Hybrid Search (Dense + Sparse) with Reciprocal Rank Fusion (RRF).
-    Now fully asynchronous with parallel CRAG execution.
+    Now fully asynchronous with parallel CRAG execution and Semantic Rewriting.
     """
-    # 1. PRE-RETRIEVAL VALIDATION
+    # 1. PRE-RETRIEVAL VALIDATION & REWRITING
     VALID_ROLES = {"Student", "Academic", "Professional", "Casual", "Public", "Guest"}
     if role not in VALID_ROLES:
         print(f"[SECURITY WARNING] Invalid role '{role}' detected. Demoting to Public.")
@@ -116,15 +117,29 @@ async def retrieve_policies(question: str, role: str = "Student", max_k: int = 3
         print(f"[REJECTED] Query '{cleaned_query}' lacks sufficient semantic density.")
         return []
 
-    # 2. ASYNC VECTOR GENERATION
+    print(f"\n[RETRIEVAL] Raw User Query: '{cleaned_query}'")
+    
+    # --- NEW: THE ASYNC REWRITER INTERCEPT ---
+    rewritten = await rewrite_query(cleaned_query, role)
+    
+    print(f"  [REWRITER] Cleaned:   {rewritten['cleaned_query']}")
+    print(f"  [REWRITER] Technical: {rewritten['technical_query']}")
+    print(f"  [REWRITER] Step-Back: {rewritten['step_back_query']}")
+    
+    # Combine variants for maximum dense vector meaning
+    optimized_semantic_query = f"{rewritten['technical_query']} {rewritten['step_back_query']}"
+    # Use cleaned variant for exact sparse keyword hits
+    optimized_keyword_query = rewritten['cleaned_query']
+
+    # 2. ASYNC VECTOR GENERATION (Using optimized queries)
     try:
-        # Use Ollama's Async Client
         ollama_client = AsyncClient()
-        dense_response = await ollama_client.embeddings(model=DENSE_MODEL, prompt=cleaned_query)
+        # Fetch the Dense embedding using the complex, technical query
+        dense_response = await ollama_client.embeddings(model=DENSE_MODEL, prompt=optimized_semantic_query)
         dense_vector = dense_response['embedding']
         
-        # Offload CPU-heavy FastEmbed to a background thread
-        sparse_generator = await asyncio.to_thread(lambda: list(sparse_model.embed([cleaned_query])))
+        # Offload CPU-heavy Sparse embedding to a background thread using the exact keyword query
+        sparse_generator = await asyncio.to_thread(lambda: list(sparse_model.embed([optimized_keyword_query])))
         sparse_result = sparse_generator[0]
         
         sparse_vector_obj = models.SparseVector(
@@ -134,7 +149,7 @@ async def retrieve_policies(question: str, role: str = "Student", max_k: int = 3
     except Exception as e:
         print(f"[ERROR] Embedding generation failed: {e}")
         return []
-
+    
     # 3. METADATA FILTERING (ABAC)
     rbac_filter = get_rbac_filter(role)
 
@@ -227,20 +242,49 @@ if __name__ == "__main__":
    
     print("  LA TROBE POLICYDB - HYBRID TEST SUITE  ")
     
+    # test_queries = [
+    #     ("How quickly must I report a privacy data breach?", "Student"),
+    #     ("Do students own the IP they create?", "Student"),
+    #     ("What is the maximum number of days for paid personal work?", "Academic"),
+    #     ("How do I get approval for University Consulting?", "Student"),
+    #     ("Who is the enquiries contact for Outside Work?", "Professional"),
+    #     ("Where can I find a good pepperoni pizza?", "Student"),
+    #     ("Will the University pay for my patent protection beyond the provisional stage?", "Academic"),
+    #     ("Can La Trobe sign an industry contract that delays the publication of my research?", "Academic"),
+    #     ("Can I freely publish teaching materials that I co-authored on the internet?", "Academic"),
+    #     ("Are all active business records freely accessible to everyone across the University?", "Professional"),
+    #     ("If my expired records have been authorised for destruction, are there any situations where I still cannot destroy them?", "Professional"),
+    #     ("If my co-author and I are arguing over the order of our names on a paper, is that considered research misconduct?", "Academic"),
+    #     ("Hello", "Student")
+    # ]
     test_queries = [
-        ("How quickly must I report a privacy data breach?", "Student"),
-        ("Do students own the IP they create?", "Student"),
-        ("What is the maximum number of days for paid personal work?", "Academic"),
-        ("How do I get approval for University Consulting?", "Student"),
-        ("Who is the enquiries contact for Outside Work?", "Professional"),
-        ("Where can I find a good pepperoni pizza?", "Student"),
-        ("Will the University pay for my patent protection beyond the provisional stage?", "Academic"),
-        ("Can La Trobe sign an industry contract that delays the publication of my research?", "Academic"),
-        ("Can I freely publish teaching materials that I co-authored on the internet?", "Academic"),
-        ("Are all active business records freely accessible to everyone across the University?", "Professional"),
-        ("If my expired records have been authorised for destruction, are there any situations where I still cannot destroy them?", "Professional"),
-        ("If my co-author and I are arguing over the order of our names on a paper, is that considered research misconduct?", "Academic"),
-        ("Hello", "Student")
+        # --- 1. THE "MESSY / SLANG" TESTS (Testing Cleaned & Technical Translation) ---
+        # Tests if Qwen can fix the typos and translate "fired" into "Termination of Employment"
+        ("i got fired and want to apeal my termnation, how do i do that?", "Professional"),
+        
+        # Tests if Qwen translates "side hustle/gig" into "Outside Work" and "Consulting"
+        ("can i start a side hustle or freelance gig if I work here full time?", "Academic"),
+        
+        # --- 2. THE "VAGUE / ABSTRACT" TESTS (Testing the Step-Back Prompt) ---
+        # Tests if Qwen abstracts "throwing away old emails" to "Records Management Data Retention"
+        ("what are the rules for throwing away old student emails?", "Professional"),
+        
+        # Tests if Qwen understands that "inventing a new app" falls under "Intellectual Property Policy"
+        ("if I build a new app in my dorm room, does the university own it?", "Student"),
+
+        # --- 3. THE "IMPLICIT FILTER" TESTS (Testing ABAC Metadata Extraction) ---
+        # Tests if Qwen correctly extracts the ["Academic", "HDR"] implicit filter from the text
+        ("I'm a lead researcher, what are the safety rules for bringing hazardous chemicals into the lab?", "Academic"),
+        
+        # Tests if Qwen extracts ["Student"] and maps "thesis paper" to "Research Authorship"
+        ("as a phd student, who gets to be the first author on my thesis paper?", "Student"),
+
+        # --- 4. THE "MULTI-HOP / COMPLEX" TESTS (Testing Concept Fusion) ---
+        # Tests if Qwen can merge Concepts: Grants + Data Management + Privacy
+        ("If I get a government grant, how long do I have to keep the sensitive patient data before deleting it?", "Academic"),
+        
+        # Tests if Qwen identifies "Research Integrity" vs standard "Termination"
+        ("what happens if an academic gets caught falsifying their grant data?", "Professional")
     ]
 
     all_results = {}
