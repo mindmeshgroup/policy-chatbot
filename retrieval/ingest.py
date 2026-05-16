@@ -108,7 +108,7 @@ def cpu_bound_conversion_and_storage(source: str, is_web: bool, html_content: st
         
         if not payloads:
             return True, source, "Skipped (Only metadata found)"
-        # ---------------------------------
+        
 
         clean_and_upsert(COLLECTION_NAME, payloads,source)
         real_title = payloads[0].get('document_title', temp_title) if payloads else temp_title
