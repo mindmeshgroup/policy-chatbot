@@ -3,12 +3,19 @@ import json
 import re
 import os
 import ollama
+import spacy
 from datetime import datetime
 from docling_core.transforms.chunker import HierarchicalChunker
 from urllib.parse import urlparse, parse_qs
 # --- CONFIGURATION ---
 EXTRACTOR_MODEL = "llama3.2"  
 
+try:
+    print("Loading spaCy NLP model for semantic chunking...")
+    nlp = spacy.load("en_core_web_sm")
+except OSError:
+    print("[WARNING] spaCy model 'en_core_web_sm' not found. Run: python -m spacy download en_core_web_sm")
+    nlp = None # Fallback just in case
 def standardize_date(date_str):
     if not date_str or str(date_str).lower() in ["none", "null", "unknown", "not specified", ""]: 
         return None
@@ -31,8 +38,14 @@ def standardize_date(date_str):
 def extract_llm_cohort(scouted_text: str, document_title: str) -> dict:
     prompt = f"""
     You are an expert Data Security Classifier for La Trobe University.
-    Analyze the policy text and output a JSON array of the intended audience.
+    Analyze the policy text and output a JSON object containing the title and the intended audience.
     
+    1. IDENTIFY TITLE:
+    - Extract the official legal name of the policy (e.g., 'Intellectual Property Policy').
+    - You MUST ignore website navigation text like 'Jump to Content', 'Jump to Navigation', 'Menu', or 'Search'.
+    - If you cannot find a clear title in the text, use: "{document_title}"
+
+    2. IDENTIFY ROLES:
     You MUST select from this exact list of 10 roles. Do not invent new roles:
     1. "Undergrad": Bachelor, diploma, standard coursework students.
     2. "Postgrad": Master's or advanced coursework students.
@@ -50,31 +63,33 @@ def extract_llm_cohort(scouted_text: str, document_title: str) -> dict:
     - If it says "Students", include ["Undergrad", "Postgrad", "HDR", "International"].
     - UNIVERSAL OVERRIDE: If the policy is about general Safety, Privacy, IT, or applies to "everyone", you MUST output ALL 10 roles. (NOTE: Do NOT apply this to specific student 'misconduct' procedures).
     
-    Document Title: {document_title}
-    Text: {scouted_text[:2500]}
+    Current File Hint: {document_title}
+    Text: {scouted_text[:3000]}
     
-    Output strictly valid JSON exactly like this: {{"target_cohort": ["Role1", "Role2"]}}
+    Output strictly valid JSON exactly like this: 
+    {{"document_title": "Actual Policy Name", "target_cohort": ["Role1", "Role2"]}}
     """
     try:
         response = ollama.chat(
             model=EXTRACTOR_MODEL, 
             messages=[{'role': 'user', 'content': prompt}], 
             format='json', 
-            options={'temperature': 0.0, 'num_ctx': 2048},
+            options={'temperature': 0.0, 'num_ctx': 4096}, # Increased context window for title scanning
             keep_alive="5m"
         )
         return json.loads(response['message']['content'])
     except Exception as e:
         print(f"      [!] Ollama Extraction Error: {e}")
-        return {} 
+        return {}
 
 # ==========================================
 # HYBRID WORKER 2: DETERMINISTIC FAILSAFE
 # ==========================================
-def _get_target_cohort(scouted_context, document_title):
-    # 1. Ask the Upgraded LLM
-    llm_data = extract_llm_cohort(scouted_context, document_title)
-    cohort_raw = llm_data.get("target_cohort", [])
+# Updated signature to accept the roles already found by the LLM
+def _get_target_cohort(scouted_context, document_title, llm_roles=None):
+    
+    # 1. Use the roles passed from the router instead of calling the LLM again
+    cohort_raw = llm_roles if llm_roles is not None else []
     if not isinstance(cohort_raw, list): cohort_raw = [cohort_raw]
 
     ALL_ROLES = ["Undergrad", "Postgrad", "HDR", "International", "Academic", "Professional", "Casual", "Alumni", "Public", "Guest"]
@@ -87,16 +102,16 @@ def _get_target_cohort(scouted_context, document_title):
             final_set.add(clean_tag)
 
     # 3. The Taxonomy Failsafe (Catches what the LLM misses)
+    # [Rest of your logic remains identical...]
     text_to_scan = (document_title + " " + scouted_context).lower()
     title_lower = document_title.lower()
 
     # UNIVERSAL OVERRIDE 
-    # [THE FIX]: Added word boundaries (\b) so "conduct" doesn't trigger on "misconduct" or "semiconductor"
     UNIVERSAL_KEYWORDS = ["all persons", "university community", "everyone", "individuals", "privacy", "safety", "conduct", "whistleblower", "compliance", "facilities", "integrity"]
     if any(re.search(rf"\b{term}\b", text_to_scan) for term in UNIVERSAL_KEYWORDS):
         final_set.update(ALL_ROLES)
 
-    # Expand tags based on heavy keywords (also using word boundaries for safety)
+    # Expand tags based on heavy keywords 
     STUDENT_KEYWORDS = ["student", "learner", "candidate", "undergrad", "admission", "enrollment", "coursework", "exam", "assessment", "grade", "tuition", "scholarship"]
     if any(re.search(rf"\b{term}\b", text_to_scan) for term in STUDENT_KEYWORDS):
         final_set.update(["Undergrad", "Postgrad", "HDR", "International"])
@@ -109,93 +124,204 @@ def _get_target_cohort(scouted_context, document_title):
     if any(re.search(rf"\b{term}\b", text_to_scan) for term in STAFF_KEYWORDS):
         final_set.update(["Academic", "Professional", "Casual"])
 
-    # --- REFINED HR BOUNDARY FIX ---
+    # HR BOUNDARY FIX
     HR_TITLES = [
         "employment", "termination of employment", "remuneration", 
         "staff leave", "staff workload", "staff probation", 
         "performance review", "flexible working", "working from home", 
-        "staff recruitment"
+        "staff recruitment", "outside work", "conflict of interest" 
     ]
-    
     if any(k in title_lower for k in HR_TITLES):
         final_set.difference_update(["Undergrad", "Postgrad", "HDR", "International", "Alumni", "Public", "Guest"])
-    # ---------------------------
 
-    # 4. Strict Title Discards (Prevents undergrads from seeing PhD policies)
-    # [THE FIX]: Added "higher degree" and "research degree" correctly to the main discard list
+    # Strict Title Discards
     if any(k in title_lower for k in ["graduate", "postgraduate", "hdr", "doctoral", "masters", "higher degree", "research degree"]):
         final_set.difference_update(["Undergrad", "Alumni", "Public", "Guest"])
         
     if "undergraduate" in title_lower:
         final_set.difference_update(["Postgrad", "HDR"])
 
-    # 5. Ultimate Failsafe (Defaults to open if totally blank)
+    # Ultimate Failsafe
     if not final_set:
         return ALL_ROLES.copy()
 
-    # Ensure Academics can always see student academic policies
+    # Academic Inheritance Rule
     if any(role in final_set for role in ["Undergrad", "Postgrad", "HDR", "International"]): 
         final_set.add("Academic")
 
     return list(final_set)
+def _consolidate_semantic_chunks(raw_chunks):
+    """
+    Merges fragmented text chunks (<100 chars, bullet points, broken sentences) 
+    into meaningful paragraphs using a Hybrid approach (Regex + spaCy NLP)
+    to preserve semantic context for the LLM.
+    """
+    if not raw_chunks:
+        return []
 
+    chunks = []
+    current_chunk = raw_chunks[0]
+    
+    # Layer 1: Fast Regex Patterns
+    list_marker_pattern = re.compile(r'^(\d+[\.\)]|\-|\*|\([a-z]\))\s+') 
+    sentence_end_pattern = re.compile(r'[\.\?\!\:]\s*$') 
+    
+    for nxt in raw_chunks[1:]:
+        text_current = current_chunk.text.strip()
+        text_next = nxt.text.strip()
+        
+        # Avoid index errors on empty chunks
+        if not text_next:
+            continue
+            
+        # 1. Regex: Fragment or Bullet List
+        is_fragment = len(text_current) < 100 or len(text_next) < 100
+        is_list_item = bool(list_marker_pattern.match(text_next))
+        is_broken_sentence = not bool(sentence_end_pattern.search(text_current))
+        
+        # 2. NLP: Grammatical Cohesion Check (Only run if Regex doesn't immediately catch it)
+        is_grammatical_continuation = False
+        if nlp and not (is_fragment or is_list_item):
+            # Parse the first few words of the next chunk to see if it relies on the previous sentence
+            doc = nlp(text_next[:50]) 
+            if len(doc) > 0:
+                first_token = doc[0]
+                # If it starts with a conjunction (and, but, because) or a pronoun
+                if first_token.pos_ in ["CCONJ", "SCONJ", "PRON"]:
+                    is_grammatical_continuation = True
+                # If it starts with a lowercase letter (fallback for bad PDF breaks)
+                elif first_token.is_lower:
+                    is_grammatical_continuation = True
+
+        # If ANY layer flags the chunk as broken, merge it!
+        if is_fragment or is_list_item or is_broken_sentence or is_grammatical_continuation:
+            current_chunk.text = f"{text_current}\n{text_next}"
+            
+            # Preserve tables during the merge
+            if hasattr(nxt.meta, 'doc_items') and nxt.meta.doc_items:
+                if getattr(current_chunk.meta, 'doc_items', None) is None:
+                    current_chunk.meta.doc_items = []
+                current_chunk.meta.doc_items.extend(nxt.meta.doc_items)
+        else:
+            chunks.append(current_chunk)
+            current_chunk = nxt
+            
+    if current_chunk:
+        chunks.append(current_chunk)
+        
+    return chunks
 # ==========================================
 # THE ROUTER (STRATEGY PATTERN)
 # ==========================================
 def extract_metadata_and_chunk(docling_document, source_path: str):
     chunker = HierarchicalChunker()
-    chunks = list(chunker.chunk(docling_document))
-    
-    if not chunks:
-        return []
+    raw_chunks = list(chunker.chunk(docling_document))
+    if not raw_chunks: return []
 
-    # 1. Route based on document type
+    # 1. Consolidate fragments first
+    chunks = _consolidate_semantic_chunks(raw_chunks)
+
+    # 2. Extract initial scouted context (first 10 chunks) for the LLM to scan
+    scouted_context = "\n".join([c.text for c in chunks[:10]])
+
+    # 3. Layer A: Ask the LLM to identify the title and cohort
+    filename_hint = os.path.basename(source_path).replace('-', ' ').title()
+    llm_data = extract_llm_cohort(scouted_context, filename_hint)
+    
+    # Extract the two fields your prompt specifically returns
+    document_title = llm_data.get("document_title", "Unknown Policy")
+    llm_target_cohort = llm_data.get("target_cohort", [])
+
+    # 4. Layer B: Structural/Regex Fallback (If LLM gave junk like 'Jump to Navigation')
+    if "jump" in document_title.lower() or "menu" in document_title.lower() or document_title == "Unknown Policy":
+        for line in scouted_context.split('\n'):
+            clean = line.strip()
+            # If it's a reasonable length and doesn't contain UI noise symbols
+            if 10 < len(clean) < 150 and not any(x in clean for x in ['#', '/', '>', '|', '\\']):
+                if "la trobe" not in clean.lower() and "menu" not in clean.lower():
+                    document_title = clean.title()
+                    break
+
+    # 5. Layer C: Deterministic URL Fallback (The absolute failsafe)
+    if "jump" in document_title.lower() or document_title == "Unknown Policy":
+        parsed_url = urlparse(source_path)
+        query_params = parse_qs(parsed_url.query)
+        document_title = f"Policy ID: {query_params['id'][0]}" if 'id' in query_params else filename_hint
+
+    # 6. Route to Specialist Extractors for Dates/Managers
     is_pdf = source_path.lower().endswith('.pdf')
     
+    # PASS the document_title we just found into the specialists so they don't overwrite it
     if is_pdf:
         metadata = _extract_pdf_metadata(chunks, source_path)
     else:
         metadata = _extract_web_metadata(chunks, source_path)
 
-    # 2. Shared Logic: LLM Cohort Extraction & ABAC Ceiling
-    global_cohorts = _get_target_cohort(metadata["scouted_context"], metadata["document_title"])
+    # FORCE the high-quality title into the final metadata object
+    metadata["document_title"] = document_title
 
-    # 3. Shared Logic: Payload Assembly & Exception Tagging
+    # 7. Shared Logic: ABAC Ceiling & Final Assembly
+    # Pass the llm_target_cohort directly to the failsafe worker to validate against your mapping rules
+    global_cohorts = _get_target_cohort(metadata["scouted_context"], document_title, llm_target_cohort)
+    
     return _assemble_final_payload(chunks, source_path, metadata, global_cohorts)
-
 
 # ==========================================
 # SPECIALIST 1: WEB EXTRACTOR
 # ==========================================
 def _extract_web_metadata(chunks, source_path):
-    # 1. Try to find the title in the Docling headers
+    # 1. Deeper scan for the title in Docling headers
     document_title = "Unknown Policy"
-    for chunk in chunks[:10]:
+    
+    # We look through the first 20 chunks to get past the Section 99 metadata
+    for chunk in chunks[:20]:
         if hasattr(chunk.meta, 'headings') and chunk.meta.headings:
-            candidate = chunk.meta.headings[0]
-            if "section 99" not in candidate.lower() and "status and details" not in candidate.lower():
+            # Grab the first heading available
+            candidate = chunk.meta.headings[0].strip()
+            candidate_lower = candidate.lower()
+            
+            # THE FILTER: Ignore the metadata header and generic sections
+            if "status and details" not in candidate_lower and not candidate_lower.startswith(("section", "part")):
                 document_title = candidate
                 break
                 
-    # 2. THE TITLE RESCUE LOGIC: If Docling failed, extract it from the path!
+    # --- THE STRUCTURAL RESCUE (If headings failed) ---
+    if document_title == "Unknown Policy" and chunks:
+        # Combine the top portion of the document (Top 15 chunks)
+        top_text = "\n".join([c.text for c in chunks[:15]])
+        for line in top_text.split('\n'):
+            line_clean = line.strip()
+            line_lower = line_clean.lower()
+            
+            # Skip noise: empty, breadcrumbs, branding, or UI buttons
+            if not line_clean or any(char in line_clean for char in ['/', '>', '|', '\\']): 
+                continue
+            if "la trobe university" in line_lower or line_lower in ["menu", "hide navigation", "view document"]:
+                continue
+            if line_lower.startswith(("section ", "part ", "status and details")): 
+                continue
+                
+            # Valid title length check
+            if 5 < len(line_clean) < 150:
+                document_title = line_clean.title()
+                break
+
+    # THE URL FALLBACK (Last Resort)
     if document_title == "Unknown Policy":
         if source_path.startswith("http"):
             parsed_url = urlparse(source_path)
             query_params = parse_qs(parsed_url.query)
-            if 'id' in query_params:
-                document_title = f"Policy ID: {query_params['id'][0]}"
-            else:
-                document_title = os.path.basename(parsed_url.path) or "Web Document"
+            document_title = f"Policy ID: {query_params['id'][0]}" if 'id' in query_params else (os.path.basename(parsed_url.path) or "Web Document")
         else:
             document_title = os.path.basename(source_path)
 
-    # 3. Context gathering
-    safe_top = "\n".join([c.text for c in chunks[:5]])
+    # 3. Context gathering (Scouted Context for target_cohort analysis)
+    safe_top = "\n".join([c.text for c in chunks[:10]]) # Look deeper for scope/audience
     safe_bottom = "\n".join([c.text for c in chunks[-5:]]) if len(chunks) > 5 else ""
     
     scouted_middle = []
     valid_keywords = ["scope", "audience", "application"]
-    for chunk in chunks[5:-5]:
+    for chunk in chunks[5:-15]: # Scan middle sections
         text_lower = chunk.text.lower().strip()
         headers = [h.lower() for h in getattr(chunk.meta, 'headings', [])] if hasattr(chunk.meta, 'headings') else []
         if any(keyword in h for h in headers for keyword in valid_keywords) or bool(re.match(r'^(section \d+ - )?(scope|audience|application)', text_lower)):
@@ -204,27 +330,17 @@ def _extract_web_metadata(chunks, source_path):
 
     scouted_context = f"{safe_top}\n" + "\n".join(scouted_middle) + f"\n{safe_bottom}"
 
-    # 4. Regex Regex extraction
+    # 4. Standard Date & Manager extraction (Remains the same)
     eff_match = re.search(r'Effective Date.*?(\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+\s+\d{4}|\d{4}-\d{2}-\d{2})', scouted_context, re.IGNORECASE)
     rev_match = re.search(r'Review Date.*?(\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]+\s+\d{4}|\d{4}-\d{2}-\d{2})', scouted_context, re.IGNORECASE)
     mgr_match = re.search(r'Responsible Manager.*?\[(.*?)\]\s*\(mailto:(.*?)\)', scouted_context, re.IGNORECASE)
     
-    # THE ULTIMATE ENQUIRIES FIX
     final_enq_name = "University Administration"
     final_enq_email = ""
-    
     enq_match_email = re.search(r'Enquiries Contact.*?=\s*\[(.*?)\]\s*\(mailto:(.*?)\)', scouted_context, re.IGNORECASE)
     if enq_match_email:
-        final_enq_name = enq_match_email.group(1).strip()
-        final_enq_email = enq_match_email.group(2).strip()
-    else:
-        enq_match_plain = re.search(r'Enquiries Contact.*?=\s*(?:\[)?([A-Za-z\,\s\-\&]+?)(?:\]|\n|\(|\.|$)', scouted_context, re.IGNORECASE)
-        if not enq_match_plain:
-             enq_match_plain = re.search(r'Enquiries Contact[\s\n:]+(?:\[)?([A-Za-z\,\s\-\&]+?)(?:\]|\n|\(|\.|$)', scouted_context, re.IGNORECASE)
-        if enq_match_plain:
-            final_enq_name = enq_match_plain.group(1).strip()
-
-    # THE VICE-CHANCELLOR FIX
+        final_enq_name, final_enq_email = enq_match_email.group(1).strip(), enq_match_email.group(2).strip()
+    
     appr_match = re.search(r'Approval Authority.*?=\s*([A-Za-z\s\-]+)', scouted_context, re.IGNORECASE)
     status_match = re.search(r'Status, 1 = \[?(.*?)\]?(\(http|\.)', scouted_context, re.IGNORECASE)
 
@@ -238,7 +354,6 @@ def _extract_web_metadata(chunks, source_path):
         "final_approval": appr_match.group(1).strip() if appr_match else "Academic Board",
         "final_status": status_match.group(1).strip() if status_match else "Current"
     }
-
 # ==========================================
 # SPECIALIST 2: PDF EXTRACTOR
 # ==========================================
@@ -253,8 +368,9 @@ def _extract_pdf_metadata(chunks, source_path):
             candidate = chunk.meta.headings[0].strip()
             candidate_lower = candidate.lower()
             
-            if "section 99" not in candidate_lower and "status and details" not in candidate_lower and "section 1" not in candidate_lower:
-                if not re.match(r'^[\(\d]', candidate) and not candidate_lower.startswith("part"):
+            # THE FIX: Broadened the rejection to catch all "Section" headers
+            if not candidate_lower.startswith("section") and not candidate_lower.startswith("part") and "status and details" not in candidate_lower:
+                if not re.match(r'^[\(\d]', candidate):
                      if len(candidate.split()) > 2 or any(word in candidate_lower for word in ["policy", "procedure", "standard", "guideline"]):
                         document_title = candidate
                         break
@@ -305,7 +421,6 @@ def _extract_pdf_metadata(chunks, source_path):
         "final_approval": final_approval,
         "final_status": final_status
     }
-
 # ==========================================
 # PAYLOAD ASSEMBLY
 # ==========================================
@@ -322,6 +437,18 @@ def _assemble_final_payload(chunks, source_path, metadata, global_cohorts):
         breadcrumb = f"{document_title} > " + " > ".join(header_path) if header_path else document_title
         breadcrumb_lower = breadcrumb.lower()
         is_real_table = any("table" in str(getattr(item, "label", "")).lower() for item in getattr(chunk.meta, "doc_items", []))
+
+        # --- NEW: ADVANCED TABLE EXTRACTION ---
+        if is_real_table and hasattr(chunk.meta, "doc_items"):
+            table_markdowns = []
+            for item in chunk.meta.doc_items:
+                if "table" in str(getattr(item, "label", "")).lower() and hasattr(item, "export_to_markdown"):
+                    table_markdowns.append(item.export_to_markdown())
+            
+            # If we found markdown tables, overwrite the flat text!
+            if table_markdowns:
+                text = "\n\n".join(table_markdowns)
+        # --------------------------------------
 
         chunk_is_exception = any(word in breadcrumb_lower for word in ["exclusion", "exemption", "exception", "waiver"]) or bool(strict_exception_pattern.search(text))
         chunk_specific_cohorts = set(global_cohorts)

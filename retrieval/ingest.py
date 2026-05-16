@@ -52,11 +52,24 @@ def get_file_hash(filepath: str) -> str:
             hasher.update(buf)
             buf = f.read(65536)
     return hasher.hexdigest()
+
 def init_worker():
     global worker_converter
-    from docling.document_converter import DocumentConverter
-    worker_converter = DocumentConverter()
+    from docling.document_converter import DocumentConverter, PdfFormatOption
+    from docling.datamodel.base_models import InputFormat
+    from docling.datamodel.pipeline_options import PdfPipelineOptions, TableFormerMode
 
+    # 1. Enable Advanced Table Extraction for PDFs
+    pipeline_options = PdfPipelineOptions()
+    pipeline_options.do_table_structure = True
+    pipeline_options.table_structure_options.mode = TableFormerMode.ACCURATE
+
+    # 2. Bind the options to the worker's converter
+    worker_converter = DocumentConverter(
+        format_options={
+            InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
+        }
+    )
 def cpu_bound_conversion_and_storage(source: str, is_web: bool, html_content: str = None, doc_tracker: str = ""):
     global worker_converter
     
@@ -108,7 +121,7 @@ def cpu_bound_conversion_and_storage(source: str, is_web: bool, html_content: st
         
         if not payloads:
             return True, source, "Skipped (Only metadata found)"
-        # ---------------------------------
+        
 
         clean_and_upsert(COLLECTION_NAME, payloads,source)
         real_title = payloads[0].get('document_title', temp_title) if payloads else temp_title
@@ -180,6 +193,7 @@ def run_web_ingestion():
                         if not raw_html:
                             await html_queue.put((idx, url, None))
                             return
+                            
                         # ==========================================
                         # THE POISONED DATA FILTER (SSO LOGIN BLOCK)
                         # ==========================================
@@ -196,6 +210,34 @@ def run_web_ingestion():
                         # ==========================================
                         
                         soup = BeautifulSoup(raw_html, 'html.parser')
+
+                        # ==========================================
+                        # DOM MUTATOR: REWRITE FAKE TABLES TO REAL TABLES
+                        # ==========================================
+                        # La Trobe policies often use <dl> (Definition Lists) for metadata grids.
+                        # This loop finds them and rewrites them as standard HTML <table> tags
+                        # so Docling's parser knows they are structured grids!
+                        for dl in soup.find_all('dl'):
+                            new_table = soup.new_tag('table')
+                            
+                            for dt in dl.find_all('dt'):
+                                dd = dt.find_next_sibling('dd')
+                                if dd:
+                                    tr = soup.new_tag('tr')
+                                    
+                                    td_key = soup.new_tag('td')
+                                    td_key.string = dt.get_text(strip=True)
+                                    
+                                    td_val = soup.new_tag('td')
+                                    td_val.string = dd.get_text(strip=True)
+                                    
+                                    tr.append(td_key)
+                                    tr.append(td_val)
+                                    new_table.append(tr)
+                                    
+                            dl.replace_with(new_table)
+                        # ==========================================
+
                         metadata_url = next((urljoin(url, a['href']) for a in soup.find_all('a', href=True) 
                                            if "status and details" in a.text.lower() or "status & details" in a.text.lower()), None)
                         
@@ -374,77 +416,124 @@ def run_debug(target):
     """
     Diagnostic tool to inspect how Docling/Crawl4AI sees a document.
     Currently compatible with the standalone _fetch_html (no persistent crawler yet).
+    This version pushes data to Qdrant AND prints the chunks.
     """
     init_worker() 
     
+    # We will use this variable to store either the raw file path OR a temporary HTML file
+    process_target = target
+    temp_html_path = None
+    
     if target.startswith("http"):
         async def quick_fetch():
-            # Create a single temporary crawler for the debug session
             async with AsyncWebCrawler(verbose=False) as debug_crawler:
                 raw_html = await _fetch_html(target, debug_crawler)
-                if not raw_html: 
-                    return None
+                if not raw_html: return None
                 
                 soup = BeautifulSoup(raw_html, 'html.parser')
                 
-                # Metadata Injection logic for the debugger
+                # ==========================================
+                # DOM MUTATOR: REWRITE FAKE TABLES TO REAL TABLES
+                # ==========================================
+                for dl in soup.find_all('dl'):
+                    new_table = soup.new_tag('table')
+                    for dt in dl.find_all('dt'):
+                        dd = dt.find_next_sibling('dd')
+                        if dd:
+                            tr = soup.new_tag('tr')
+                            td_key = soup.new_tag('td')
+                            td_key.string = dt.get_text(strip=True)
+                            td_val = soup.new_tag('td')
+                            td_val.string = dd.get_text(strip=True)
+                            tr.append(td_key)
+                            tr.append(td_val)
+                            new_table.append(tr)
+                    dl.replace_with(new_table)
+                # ==========================================
+                
                 metadata_url = next((urljoin(target, a['href']) for a in soup.find_all('a', href=True) 
                                    if "status and details" in a.text.lower() or "status & details" in a.text.lower()), None)
                 
                 if metadata_url:
-                    # Pass the debug_crawler here as well
                     meta_html = await _fetch_html(metadata_url, debug_crawler)
                     if meta_html:
                         meta_soup = BeautifulSoup(meta_html, 'html.parser')
                         meta_content = (meta_soup.find('table') or meta_soup.find('div', class_='document-content') or meta_soup.body)
                         
                         if meta_content:
-                            wrapper = soup.new_tag("div")
+                            wrapper = soup.new_tag("div", id="injected-status-details", style="border-top: 5px solid red;")
                             meta_header = soup.new_tag("h1")
                             meta_header.string = "SECTION 99 - STATUS AND DETAILS (METADATA)"
                             wrapper.append(meta_header)
                             wrapper.append(meta_content)
-                            
                             if soup.body:
-                                soup.body.insert(0, wrapper) # Inject at the very top!
+                                soup.body.insert(0, wrapper) 
                           
                 return str(soup)
 
         print(f"\n[DEBUG] Fetching and injecting metadata for: {target}")
-        html = asyncio.run(quick_fetch())
-        # Passing HTML to Docling converter
-        success, _, info = cpu_bound_conversion_and_storage(target, True, html, "[DEBUG]")
+        html_content = asyncio.run(quick_fetch())
         
+        # Write the mutated HTML to a temporary file
+        import tempfile
+        if html_content:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".html", mode="w", encoding="utf-8") as temp_file:
+                temp_file.write(html_content)
+                process_target = temp_file.name
+                temp_html_path = temp_file.name
+                
+        # --- NEW: RUN THE ACTUAL PIPELINE ---
+        print(f"\n[DEBUG] Running Full Pipeline (Embedding -> Qdrant)")
+        success, _, info = cpu_bound_conversion_and_storage(process_target, True, html_content, "[DEBUG]")
+        if success:
+            print(f"Data successfully pushed to Qdrant: {info}")
+
     else:
-        # --- THE DOCLING PDF/LOCAL DIAGNOSTIC TOOL ---
-        print(f"\n[DIAGNOSTIC MODE] Opening local file: {target}...")
-        
-        # Access the global worker_converter initialized by init_worker()
-        global worker_converter
-        result = worker_converter.convert(target)
+        # For local PDFs, run the actual pipeline first
+        print(f"\n[DEBUG] Running Full Pipeline (Embedding -> Qdrant) for local file: {target}")
+        success, _, info = cpu_bound_conversion_and_storage(target, False, None, "[DEBUG]")
+        if success:
+            print(f"Data successfully pushed to Qdrant: {info}")
+
+    # --- SHARED DIAGNOSTIC TOOL FOR BOTH PDF AND HTML ---
+    print(f"\n[DIAGNOSTIC MODE] Printing document structure to console...")
+    global worker_converter
+    
+    try:
+        result = worker_converter.convert(process_target)
         
         from docling_core.transforms.chunker import HierarchicalChunker
         chunker = HierarchicalChunker()
         chunks = list(chunker.chunk(result.document))
         
         print(f"\n--- DOCLING PARSE TREE ({len(chunks)} Chunks) ---")
-        for i, chunk in enumerate(chunks[:20]): # Limits to first 20 chunks for clarity
-            # Get the heading path if it exists
+        for i, chunk in enumerate(chunks[:20]): 
             headers = getattr(chunk.meta, 'headings', [])
             header_str = " > ".join(headers) if headers else "TOP LEVEL (NO HEADING)"
             
-            # Find out what Docling labeled this specific piece of text
             labels = [str(getattr(item, "label", "Unknown")) for item in getattr(chunk.meta, "doc_items", [])]
             label_str = ", ".join(labels) if labels else "NO LABEL"
             
             print(f"\nCHUNK [{i}]")
             print(f"Detected Hierarchy: {header_str}")
             print(f"Docling Label:      {label_str}")
-            print(f"Raw Text Preview:\n{chunk.text.strip()[:300]}...") # Previews first 300 chars
+            
+            is_table = any("table" in l.lower() for l in labels)
+            if is_table:
+                # Suppress the deprecation warning
+                markdowns = [item.export_to_markdown(doc=result.document) for item in getattr(chunk.meta, "doc_items", []) if "table" in str(getattr(item, "label", "")).lower() and hasattr(item, "export_to_markdown")]
+                if markdowns:
+                    print(f"Markdown Table Preview:\n{markdowns[0]}")
+            else:
+                print(f"Raw Text Preview:\n{chunk.text.strip()[:300]}...")
             print("-" * 60)
             
-        print("\nDiagnostic complete. Exiting before database insertion.")
-        return
+        print("\nDiagnostic complete.")
+        
+    finally:
+        # Clean up the temporary HTML file if we created one
+        if temp_html_path and os.path.exists(temp_html_path):
+            os.remove(temp_html_path)
 if __name__ == "__main__":
     print("========================================")
     print("La Trobe PolicyDB - Core Ingestion")
