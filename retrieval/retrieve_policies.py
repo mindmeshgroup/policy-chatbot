@@ -1,12 +1,13 @@
 import json
 import ollama
+import math
 from ollama import AsyncClient # Add this to imports
 import asyncio
 from typing import List, Dict
 from qdrant_client import AsyncQdrantClient
 from qdrant_client import models
 from fastembed import SparseTextEmbedding
-
+from fastembed.rerank.cross_encoder import TextCrossEncoder
 from retrieval.utils.query_rewriter import rewrite_query
 # --- CONFIGURATION ---
 # IMPORTANT: Switched to AsyncQdrantClient for parallel CRAG queries
@@ -19,7 +20,8 @@ DENSE_MODEL = "nomic-embed-text"
 print("Loading Sparse Embedding Model (SPLADE)...")
 sparse_model = SparseTextEmbedding(model_name="prithivida/Splade_PP_en_v1")
 
-
+print("Loading Cross-Encoder Reranking Model...")
+reranker = TextCrossEncoder(model_name="BAAI/bge-reranker-base")
 def get_rbac_filter(role: str) -> models.Filter:
     """
     Generates the true ABAC/RBAC MatchAny filter.
@@ -35,7 +37,7 @@ def get_rbac_filter(role: str) -> models.Filter:
         ]
     )
 
-async def fetch_standard_track(dense_vector, sparse_vector_obj, rbac_filter, max_k):
+async def fetch_standard_track(dense_vector, sparse_vector_obj, rbac_filter):
     """Executes the Standard Hybrid RRF Search."""
     return await client.query_points(
         collection_name=COLLECTION_NAME,
@@ -44,7 +46,7 @@ async def fetch_standard_track(dense_vector, sparse_vector_obj, rbac_filter, max
                 query=dense_vector,
                 using="text-dense",
                 filter=rbac_filter,
-                limit=max_k * 2,
+                limit=40,
                 score_threshold=0.30, # Keeps out low-relevance standard docs
                 params=models.SearchParams(
                     quantization=models.QuantizationSearchParams(
@@ -56,11 +58,11 @@ async def fetch_standard_track(dense_vector, sparse_vector_obj, rbac_filter, max
                 query=sparse_vector_obj,
                 using="text-sparse",
                 filter=rbac_filter,
-                limit=max_k * 2
+                limit=40
             )
         ],
         query=models.FusionQuery(fusion=models.Fusion.RRF),
-        limit=max_k
+        limit=20
     )
 
 async def fetch_exception_track(dense_vector, sparse_vector_obj, rbac_filter):
@@ -156,7 +158,7 @@ async def retrieve_policies(question: str, role: str = "Student", max_k: int = 3
     # 4. ASYNCHRONOUS PARALLEL HYBRID SEARCH (CRAG)
     try:
         # Fire both Hybrid RRF queries at Qdrant simultaneously
-        standard_task = fetch_standard_track(dense_vector, sparse_vector_obj, rbac_filter, max_k)
+        standard_task = fetch_standard_track(dense_vector, sparse_vector_obj, rbac_filter)
         exception_task = fetch_exception_track(dense_vector, sparse_vector_obj, rbac_filter)
         
         # Await them together (Zero Latency Overhead)
@@ -182,8 +184,45 @@ async def retrieve_policies(question: str, role: str = "Student", max_k: int = 3
             else:
                 standard_chunks.append(point)
 
-    # Force exceptions to the absolute bottom
+    # ==========================================
+    # TASK 2: CROSS-ENCODER RERANKING INTERCEPT
+    # ==========================================
+   # ==========================================
+    # TASK 2: CROSS-ENCODER RERANKING INTERCEPT
+    # ==========================================
+    if all_points:
+        print(f"  [RERANKER] Deep evaluating {len(all_points)} total chunks...")
+        documents = [point.payload.get("content", "") for point in all_points]
+        
+        # Grade EVERYTHING
+        scores = await asyncio.to_thread(
+            lambda: list(reranker.rerank(cleaned_query, documents))
+        )
+        
+        reranked_points = []
+        for point, raw_logit in zip(all_points, scores):
+            safe_logit = max(min(float(raw_logit), 100), -100)
+            probability_score = 1 / (1 + math.exp(-safe_logit))
+            point.score = probability_score # Overwrite all scores
+            reranked_points.append(point)
+        
+        # Sort everything by true probability
+        reranked_points.sort(key=lambda x: x.score, reverse=True)
+        
+        # Now, separate the top standard chunks and the top exceptions safely
+        standard_chunks = []
+        exception_chunks = []
+        
+        for point in reranked_points:
+            if point.payload.get("is_exception") == True:
+                if len(exception_chunks) < 2: # Keep max 2 exceptions
+                    exception_chunks.append(point)
+            else:
+                if len(standard_chunks) < max_k: # Keep max_k standard chunks
+                    standard_chunks.append(point)
+
     final_points = standard_chunks + exception_chunks
+    # ==========================================
 
     # 6. DATA CONTRACT ENFORCEMENT
     formatted_results = []
@@ -238,64 +277,70 @@ def run_validation_test(query: str, role: str):
     raw_json = asyncio.run(retrieve_policies(query, role=role))
     print(json.dumps(raw_json, indent=2))
 
-if __name__ == "__main__":
+async def run_all_tests():
    
     print("  LA TROBE POLICYDB - HYBRID TEST SUITE  ")
     
-    # test_queries = [
-    #     ("How quickly must I report a privacy data breach?", "Student"),
-    #     ("Do students own the IP they create?", "Student"),
-    #     ("What is the maximum number of days for paid personal work?", "Academic"),
-    #     ("How do I get approval for University Consulting?", "Student"),
-    #     ("Who is the enquiries contact for Outside Work?", "Professional"),
-    #     ("Where can I find a good pepperoni pizza?", "Student"),
-    #     ("Will the University pay for my patent protection beyond the provisional stage?", "Academic"),
-    #     ("Can La Trobe sign an industry contract that delays the publication of my research?", "Academic"),
-    #     ("Can I freely publish teaching materials that I co-authored on the internet?", "Academic"),
-    #     ("Are all active business records freely accessible to everyone across the University?", "Professional"),
-    #     ("If my expired records have been authorised for destruction, are there any situations where I still cannot destroy them?", "Professional"),
-    #     ("If my co-author and I are arguing over the order of our names on a paper, is that considered research misconduct?", "Academic"),
-    #     ("Hello", "Student")
-    # ]
     test_queries = [
-        # --- 1. THE "MESSY / SLANG" TESTS (Testing Cleaned & Technical Translation) ---
-        # Tests if Qwen can fix the typos and translate "fired" into "Termination of Employment"
-        ("i got fired and want to apeal my termnation, how do i do that?", "Professional"),
-        
-        # Tests if Qwen translates "side hustle/gig" into "Outside Work" and "Consulting"
-        ("can i start a side hustle or freelance gig if I work here full time?", "Academic"),
-        
-        # --- 2. THE "VAGUE / ABSTRACT" TESTS (Testing the Step-Back Prompt) ---
-        # Tests if Qwen abstracts "throwing away old emails" to "Records Management Data Retention"
-        ("what are the rules for throwing away old student emails?", "Professional"),
-        
-        # Tests if Qwen understands that "inventing a new app" falls under "Intellectual Property Policy"
-        ("if I build a new app in my dorm room, does the university own it?", "Student"),
-
-        # --- 3. THE "IMPLICIT FILTER" TESTS (Testing ABAC Metadata Extraction) ---
-        # Tests if Qwen correctly extracts the ["Academic", "HDR"] implicit filter from the text
-        ("I'm a lead researcher, what are the safety rules for bringing hazardous chemicals into the lab?", "Academic"),
-        
-        # Tests if Qwen extracts ["Student"] and maps "thesis paper" to "Research Authorship"
-        ("as a phd student, who gets to be the first author on my thesis paper?", "Student"),
-
-        # --- 4. THE "MULTI-HOP / COMPLEX" TESTS (Testing Concept Fusion) ---
-        # Tests if Qwen can merge Concepts: Grants + Data Management + Privacy
-        ("If I get a government grant, how long do I have to keep the sensitive patient data before deleting it?", "Academic"),
-        
-        # Tests if Qwen identifies "Research Integrity" vs standard "Termination"
-        ("what happens if an academic gets caught falsifying their grant data?", "Professional")
+        ("How quickly must I report a privacy data breach?", "Student"),
+        ("Do students own the IP they create?", "Student"),
+        ("What is the maximum number of days for paid personal work?", "Academic"),
+        ("How do I get approval for University Consulting?", "Student"),
+        ("Who is the enquiries contact for Outside Work?", "Professional"),
+        ("Where can I find a good pepperoni pizza?", "Student"),
+        ("Will the University pay for my patent protection beyond the provisional stage?", "Academic"),
+        ("Can La Trobe sign an industry contract that delays the publication of my research?", "Academic"),
+        ("Can I freely publish teaching materials that I co-authored on the internet?", "Academic"),
+        ("Are all active business records freely accessible to everyone across the University?", "Professional"),
+        ("If my expired records have been authorised for destruction, are there any situations where I still cannot destroy them?", "Professional"),
+        ("If my co-author and I are arguing over the order of our names on a paper, is that considered research misconduct?", "Academic"),
+        ("Hello", "Student")
     ]
+    # test_queries = [
+    #     # --- 1. THE "MESSY / SLANG" TESTS (Testing Cleaned & Technical Translation) ---
+    #     # Tests if Qwen can fix the typos and translate "fired" into "Termination of Employment"
+    #     ("i got fired and want to apeal my termnation, how do i do that?", "Professional"),
+        
+    #     # Tests if Qwen translates "side hustle/gig" into "Outside Work" and "Consulting"
+    #     ("can i start a side hustle or freelance gig if I work here full time?", "Academic"),
+        
+    #     # --- 2. THE "VAGUE / ABSTRACT" TESTS (Testing the Step-Back Prompt) ---
+    #     # Tests if Qwen abstracts "throwing away old emails" to "Records Management Data Retention"
+    #     ("what are the rules for throwing away old student emails?", "Professional"),
+        
+    #     # Tests if Qwen understands that "inventing a new app" falls under "Intellectual Property Policy"
+    #     ("if I build a new app in my dorm room, does the university own it?", "Student"),
+
+    #     # --- 3. THE "IMPLICIT FILTER" TESTS (Testing ABAC Metadata Extraction) ---
+    #     # Tests if Qwen correctly extracts the ["Academic", "HDR"] implicit filter from the text
+    #     ("I'm a lead researcher, what are the safety rules for bringing hazardous chemicals into the lab?", "Academic"),
+        
+    #     # Tests if Qwen extracts ["Student"] and maps "thesis paper" to "Research Authorship"
+    #     ("as a phd student, who gets to be the first author on my thesis paper?", "Student"),
+
+    #     # --- 4. THE "MULTI-HOP / COMPLEX" TESTS (Testing Concept Fusion) ---
+    #     # Tests if Qwen can merge Concepts: Grants + Data Management + Privacy
+    #     ("If I get a government grant, how long do I have to keep the sensitive patient data before deleting it?", "Academic"),
+        
+    #     # Tests if Qwen identifies "Research Integrity" vs standard "Termination"
+    #     ("what happens if an academic gets caught falsifying their grant data?", "Professional")
+    # ]
 
     all_results = {}
     for query, role in test_queries:
+        print(f"\n" + "═"*60)
         print(f"Running Validation For: '{query}' (Role: {role})")
-        # Ensure we capture the empty list if a query is rejected
-        res = asyncio.run(retrieve_policies(query, role=role))
+        print("═"*60)
+        
+        # Await safely inside a single event loop
+        res = await retrieve_policies(query, role=role)
         all_results[query] = res
 
-    # Write the entire output to a JSON file so you can inspect it in VS Code
     with open("test_results.json", "w") as f:
         json.dump(all_results, f, indent=2)
         
     print("\n All tests complete! Open 'test_results.json' to see the full output.")
+
+if __name__ == "__main__":
+    # Start the event loop ONCE for the entire script
+    asyncio.run(run_all_tests())
