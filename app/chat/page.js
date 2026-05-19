@@ -113,7 +113,7 @@ function ChatContent() {
       setMessages(prev => [...prev, {
         id: prev.length + 1,
         sender: 'bot',
-        text: '⚠️ Could not connect to the server. Please try again.',
+        text: ' Could not connect to the server. Please try again.',
         sources: []
       }]);
     } finally {
@@ -282,7 +282,7 @@ function ChatContent() {
 
           {/* Disclaimer */}
           <div role="note" style={{ backgroundColor: t.disclaimerBg, borderBottom: `1px solid ${t.disclaimerBorder}`, padding: '8px 20px', transition: 'background-color 0.2s' }}>
-            <span style={{ fontSize: '12px', color: t.disclaimerText }}>⚠️ Responses are based on official La Trobe policy documents. For legal advice, contact university staff.</span>
+            <span style={{ fontSize: '12px', color: t.disclaimerText }}>Responses are based on official La Trobe policy documents. For legal advice, contact university staff.</span>
           </div>
 
           {/* Messages */}
