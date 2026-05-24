@@ -100,7 +100,26 @@ async def ask_question(request: Request, body: ChatRequest):
             "exam",
             "leave",
             "university",
-            "special consideration"
+            "special consideration",
+            "appeal",
+            "grade",
+            "fee",
+            "credit",
+            "withdrawal",
+            "result",
+            "complaint",
+            "rights",
+            "scholarship",
+            "refund",
+            "course",
+            "subject",
+            "unit",
+            "degree",
+            "graduation",
+            "defer",
+            "suspend",
+            "penalty",
+            "plagiarism",
         ]
 
         if not any(keyword in question.lower() for keyword in allowed_keywords):
