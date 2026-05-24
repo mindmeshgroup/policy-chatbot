@@ -436,12 +436,12 @@ def run_test_suite() -> list[dict]:
         print(f"  Fallback?  : {record['is_fallback']}")
         print(f"  Flagged?   : {record['hallucination_flagged']}  {record['flag_reason']}")
         if record["adversarial_warning"]:
-            print("  ⚠️  Adversarial query detected")
+            print("   Adversarial query detected")
 
     with open(OUTPUT_FILE, "w") as f:
         json.dump(results, f, indent=2)
 
-    print(f"\n✅ Results saved to {OUTPUT_FILE}")
+    print(f"\n Results saved to {OUTPUT_FILE}")
     print(f"   Total questions: {len(results)}")
     return results
 
