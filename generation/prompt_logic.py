@@ -14,10 +14,10 @@ ARCHITECTURE FIX (Sprint 4 integration):
     {"answer": str, "used_sources": list[str]}
 """
 
-# ── Version tracking ────────────────────────────────────────────────────────────
+# Version tracking
 PROMPT_VERSION = "v3.1"
 
-# ── Sprint 3 hardened prompt (updated for integrated architecture) ───────────────
+# Sprint 3 hardened prompt (updated for integrated architecture) 
 # Changes from v3.0:
 #  • Removed citation-writing instruction — backend handles citations from metadata
 #  • Added exception-chunk awareness (is_exception flag)
@@ -40,6 +40,9 @@ STRICT GROUNDING RULES — READ BEFORE ANSWERING
    an answer that no single source supports.
 5. EXCEPTION CHUNKS: Any chunk marked [EXCEPTION] describes a specific
    override or special case. Treat it as higher priority than general rules.
+6. ANSWER STYLE: Write your answer in plain, natural language. Do NOT
+   reference chunk numbers, document titles, URLs, or any metadata
+   labels from the context. Just answer the question directly.
 
 FORBIDDEN BEHAVIOURS (will be detected and flagged):
 ✗ Making up policy rules, dates, or figures not found in the context
@@ -47,7 +50,7 @@ FORBIDDEN BEHAVIOURS (will be detected and flagged):
   appears in the source text
 ✗ Speculating about what a policy "might" mean
 ✗ Answering a question that is not addressed in the context at all
-✗ Writing source filenames, URLs, or page numbers — the system handles citations
+✗ Writing source filenames, URLs, page numbers, chunk IDs, or document titles — the system handles citations automatically. NEVER say "According to [CHUNK...]" or reference any metadata labels from the context block.
 
 ══════════════════════════════════════════════════════════════════
 FALLBACK RULE (when context does not contain the answer)
@@ -77,7 +80,7 @@ ANSWER
 """
 
 
-# ── Context Formatter ───────────────────────────────────────────────────────────
+# ── Context Formatter
 
 def format_chunks_for_prompt(chunks: list[dict]) -> str:
     """
@@ -102,18 +105,13 @@ def format_chunks_for_prompt(chunks: list[dict]) -> str:
         content   = chunk.get("content", "")
 
         label = "[EXCEPTION] " if is_exc else ""
-        header = (
-            f"[CHUNK {i+1}] {label}"
-            f"DOCUMENT: {title} | "
-            f"URL: {url} | "
-            f"ID: {chunk_id}"
-        )
+         header = f"[CHUNK {i+1}] {label}{title}"
         formatted.append(f"{header}\n{content}")
 
     return "\n\n---\n\n".join(formatted)
 
 
-# ── Kept for backward compatibility with test_generation.py ────────────────────
+# Kept for backward compatibility with test_generation.py
 
 def format_docs_with_metadata(docs: list) -> str:
     """
@@ -136,7 +134,7 @@ def format_docs_with_metadata(docs: list) -> str:
     return "\n\n---\n\n".join(formatted)
 
 
-# ── Post-generation Hallucination Validator ─────────────────────────────────────
+# Post-generation Hallucination Validator 
 
 FALLBACK_MARKERS = [
     "not covered in the provided policy",
@@ -206,7 +204,7 @@ def validate_response(answer: str, chunks: list[dict]) -> dict:
     }
 
 
-# ── Adversarial Query Detector ──────────────────────────────────────────────────
+#  Adversarial Query Detector
 
 ADVERSARIAL_PATTERNS = [
     "i heard that la trobe",
@@ -229,7 +227,7 @@ def is_adversarial(query: str) -> bool:
     return any(pattern in q for pattern in ADVERSARIAL_PATTERNS)
 
 
-# ── Main guardrail wrapper used by generate_answer ─────────────────────────────
+# Main guardrail wrapper used by generate_answer
 
 def build_guardrailed_response(query: str, chunks: list[dict], raw_answer: str) -> dict:
     """
@@ -251,4 +249,4 @@ def build_guardrailed_response(query: str, chunks: list[dict], raw_answer: str) 
     }
 
 
-print(f"✅ Prompt Template ({PROMPT_VERSION}) and Guardrails initialised.")
+print(f"Prompt Template ({PROMPT_VERSION}) and Guardrails initialised.")
