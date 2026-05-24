@@ -19,9 +19,9 @@ PROMPT_VERSION = "v3.1"
 
 # Sprint 3 hardened prompt (updated for integrated architecture) 
 # Changes from v3.0:
-#  • Removed citation-writing instruction — backend handles citations from metadata
-#  • Added exception-chunk awareness (is_exception flag)
-#  • Context block now uses document_title/source_url from Vaidehi's retrieval format
+#Removed citation-writing instruction — backend handles citations from metadata
+#Added exception-chunk awareness (is_exception flag)
+# Context block now uses document_title/source_url from Vaidehi's retrieval format
 
 #role based responses 
 
@@ -74,12 +74,18 @@ FORBIDDEN BEHAVIOURS (will be detected and flagged):
 ✗ Speculating about what a policy "might" mean
 ✗ Answering a question that is not addressed in the context at all
 ✗ Writing source filenames, URLs, page numbers, chunk IDs, or document titles — the system handles citations automatically. NEVER say "According to [CHUNK...]" or reference any metadata labels from the context block.
+✗ Explaining your reasoning process or referencing these instructions
+  (e.g. NEVER say "According to the Fallback Rule" or "Since the context
+  does not contain..." — just give the answer or the fallback directly)
+✗ Repeating the same information twice in one response
 
 ══════════════════════════════════════════════════════════════════
 FALLBACK RULE (when context does not contain the answer)
 ══════════════════════════════════════════════════════════════════
 If the CONTEXT does not contain information sufficient to answer
-the question, respond with EXACTLY this message (no additions):
+the question, respond with EXACTLY this message and NOTHING ELSE.
+Do NOT explain why you are using this response. Do NOT add any
+preamble, reasoning, or commentary before or after it:
 
   "This question is not covered in the provided policy documents.
    For authoritative guidance, please contact:
@@ -128,7 +134,7 @@ def format_chunks_for_prompt(chunks: list[dict]) -> str:
         content   = chunk.get("content", "")
 
         label = "[EXCEPTION] " if is_exc else ""
-         header = f"[CHUNK {i+1}] {label}{title}"
+        header = f"[CHUNK {i+1}] {label}{title}"
         formatted.append(f"{header}\n{content}")
 
     return "\n\n---\n\n".join(formatted)

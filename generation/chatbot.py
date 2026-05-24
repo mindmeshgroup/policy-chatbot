@@ -43,7 +43,7 @@ from prompt_logic import (
 
 load_dotenv()
 
-# ── LLM client (no retrieval setup here) ────────────────────────────────────────
+# ── LLM client (no retrieval setup here)
 _client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
 LLM_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
 LLM_TEMPERATURE = 0
