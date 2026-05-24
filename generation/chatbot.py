@@ -28,10 +28,11 @@ PUBLIC API:
 """
 
 import os
-from dotenv import load_dotenv
 from openai import OpenAI
+from dotenv import load_dotenv
 
-from prompt_logic_v3 import (
+
+from prompt_logic import (
     RAG_TEMPLATE,
     PROMPT_VERSION,
     format_chunks_for_prompt,
@@ -42,9 +43,9 @@ from prompt_logic_v3 import (
 
 load_dotenv()
 
-#  LLM client (no retrieval setup here)
-_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-LLM_MODEL = "gpt-4o-mini"
+# ── LLM client (no retrieval setup here) ────────────────────────────────────────
+_client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
+LLM_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
 LLM_TEMPERATURE = 0
 
 
