@@ -32,7 +32,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 
 
-from prompt_logic import (
+from generation.prompt_logic import (
     RAG_TEMPLATE,
     PROMPT_VERSION,
     format_chunks_for_prompt,

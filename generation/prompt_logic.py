@@ -128,7 +128,7 @@ def format_chunks_for_prompt(chunks: list[dict]) -> str:
         content   = chunk.get("content", "")
 
         label = "[EXCEPTION] " if is_exc else ""
-         header = f"[CHUNK {i+1}] {label}{title}"
+        header = f"[CHUNK {i+1}] {label}{title}"
         formatted.append(f"{header}\n{content}")
 
     return "\n\n---\n\n".join(formatted)
