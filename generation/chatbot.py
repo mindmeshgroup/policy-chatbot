@@ -28,10 +28,15 @@ PUBLIC API:
 """
 
 import os
-from dotenv import load_dotenv
 from openai import OpenAI
+from dotenv import load_dotenv
 
+<<<<<<< HEAD
 from generation.prompt_logic_v3 import (
+=======
+
+from prompt_logic import (
+>>>>>>> 8175fa953d790a03fba15ad311c2dfa233793dd8
     RAG_TEMPLATE,
     PROMPT_VERSION,
     format_chunks_for_prompt,
@@ -43,12 +48,12 @@ from generation.prompt_logic_v3 import (
 load_dotenv()
 
 # ── LLM client (no retrieval setup here) ────────────────────────────────────────
-_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-LLM_MODEL = "gpt-4o-mini"
+_client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
+LLM_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
 LLM_TEMPERATURE = 0
 
 
-# ── Fallback response ────────────────────────────────────────────────────────────
+#  Fallback response 
 
 FALLBACK_ANSWER = (
     "This question is not covered in the provided policy documents.\n"
@@ -59,7 +64,7 @@ FALLBACK_ANSWER = (
 )
 
 
-# ── Core generation function ─────────────────────────────────────────────────────
+# Core generation function
 
 def generate_answer(question: str, chunks: list[dict], role: str = "student") -> dict:
     """
@@ -79,23 +84,23 @@ def generate_answer(question: str, chunks: list[dict], role: str = "student") ->
           "used_sources": list[str],   # chunk_ids of all provided chunks
         }
     """
-    # ── Safety: empty retrieval → skip LLM entirely ──────────────────────────
+    # Safety: empty retrieval ,skip LLM entirely
     if not chunks:
         return {
             "answer": FALLBACK_ANSWER,
             "used_sources": [],
         }
 
-    # ── Adversarial check (pre-generation) ───────────────────────────────────
+    # Adversarial check (pre-generation)
     adversarial_detected = is_adversarial(question)
 
-    # ── Build context from Vaidehi's dict chunks ─────────────────────────────
+    # Build context from Vaidehi's dict chunks
     context = format_chunks_for_prompt(chunks)
 
-    # ── Fill prompt template ─────────────────────────────────────────────────
+    #  Fill prompt template
     prompt = RAG_TEMPLATE.format(context=context, question=question)
 
-    # ── Call LLM ─────────────────────────────────────────────────────────────
+    # Call LLM
     response = _client.chat.completions.create(
         model=LLM_MODEL,
         temperature=LLM_TEMPERATURE,
@@ -103,14 +108,14 @@ def generate_answer(question: str, chunks: list[dict], role: str = "student") ->
     )
     raw_answer = response.choices[0].message.content.strip()
 
-    # ── Post-generation guardrails ───────────────────────────────────────────
+    # Post-generation guardrails
     guardrail_report = build_guardrailed_response(
         query=question,
         chunks=chunks,
         raw_answer=raw_answer,
     )
 
-    # ── Determine final answer ───────────────────────────────────────────────
+    # Determine final answer 
     validation = guardrail_report["validation"]
     final_answer = raw_answer
 
@@ -119,7 +124,7 @@ def generate_answer(question: str, chunks: list[dict], role: str = "student") ->
         # Keep the answer but the backend should log the flag
         pass  # Flag is surfaced in validation; backend decides escalation
 
-    # ── Build backend-compatible response ───────────────────────────────────
+    # Build backend-compatible response 
     # used_sources = chunk_ids of all chunks passed in (backend maps to citations)
     used_sources = [c.get("chunk_id", f"unknown_{i}") for i, c in enumerate(chunks)]
 
@@ -136,7 +141,7 @@ def generate_answer(question: str, chunks: list[dict], role: str = "student") ->
     }
 
 
-# ── Demo (standalone, not part of backend flow) ─────────────────────────────────
+# Demo (standalone, not part of backend flow)
 
 if __name__ == "__main__":
     # Example: simulate chunks as if Vaidehi's retrieval returned them
@@ -167,6 +172,6 @@ if __name__ == "__main__":
         print(f" ANSWER:\n{result['answer']}")
         print(f" USED SOURCES: {result['used_sources']}")
         if result["_debug"]["adversarial_warning"]:
-            print("  ⚠️  ADVERSARIAL QUERY DETECTED")
+            print(" ADVERSARIAL QUERY DETECTED")
         v = result["_debug"]["validation"]
         print(f" Keyword overlap: {v['keyword_overlap_score']:.0%} | Flagged: {v['flagged']}")

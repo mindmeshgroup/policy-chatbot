@@ -271,7 +271,7 @@ def score_all(results_file: str = RESULTS_FILE) -> list[dict]:
     with open(SCORED_FILE, "w") as f:
         json.dump(scored, f, indent=2)
 
-    print(f"\n✅ Scored results saved to {SCORED_FILE}")
+    print(f"\n Scored results saved to {SCORED_FILE}")
     return scored
 
 

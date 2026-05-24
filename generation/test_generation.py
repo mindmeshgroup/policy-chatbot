@@ -173,7 +173,7 @@ def run_all_tests():
             consistent = True
 
         test_passed = (not struct_issues) and behaviour_ok and consistent
-        status = "✅ PASS" if test_passed else "❌ FAIL"
+        status = " PASS" if test_passed else " FAIL"
 
         print(f"  Status         : {status}")
         print(f"  Answer snippet : {answer[:120]}")
