@@ -37,7 +37,9 @@ def generate_universal_id(document_title: str) -> str:
 
 def get_dense_embedding(text):
     """Converts text into a 768-dimension vector using Ollama."""
-    response = ollama.embeddings(model=EMBED_MODEL, prompt=text)
+    response = ollama.embeddings(model=EMBED_MODEL, prompt=text, options={
+        'num_ctx': 8192 
+    })
     return response['embedding']
 
 def clean_and_upsert(collection_name, payloads, source_path):
