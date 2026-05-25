@@ -10,7 +10,7 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from crawl4ai import AsyncWebCrawler
 # imports
-from retrieval.utils.metadata_factory import extract_metadata_and_chunk
+from retrieval.utils.metadata_factory import extract_metadata_and_chunk, _consolidate_semantic_chunks
 from retrieval.utils.vector_engine import clean_and_upsert
 from retrieval.utils.state_manager import get_all_states, save_state
 
@@ -118,39 +118,92 @@ def cpu_bound_conversion_and_storage(source: str, is_web: bool, html_content: st
                 filtered_payloads.append(p)
                 
         payloads = filtered_payloads
-        
         if not payloads:
             return True, source, "Skipped (Only metadata found)"
         
-
-        clean_and_upsert(COLLECTION_NAME, payloads,source)
+        # 1. Database execution occurs exactly ONCE
+        clean_and_upsert(COLLECTION_NAME, payloads, source)
         real_title = payloads[0].get('document_title', temp_title) if payloads else temp_title
         
-        # Live print immediately after embedding
+        # 2. Terminal log status outputs exactly ONCE
         print(f"{doc_tracker} Successfully Indexed: {real_title} ({len(payloads)} chunks)")
-        return True, source, f"{real_title} ({len(payloads)} chunks)"
+        
+        # 3. Safely returns the packaged payload dictionary back to the parent consumer loop
+        return True, source, {
+            "status": "success",
+            "document_title": real_title,
+            "payloads": payloads
+        }
         
     except Exception as e:
         print(f"{doc_tracker}  Error: {str(e)}")
-        return False, source, f"Error: {str(e)}"
+        return False, source, {
+            "status": "failed",
+            "error_msg": str(e)
+        }
+       
+ingestion_summary = {
+    "successful_titles": [],
+    "warnings": {
+        "semantic_variance_bypasses": 0,
+        "pydantic_validation_failures": 0,
+        "worker_timeout_exceptions": 0,
+        "atomic_pass_chunks": 0
+    }
+}
 
+def print_ingestion_dashboard(summary, failed, restricted):
+    print("\n" + "="*60)
+    print("LA TROBE UNIVERSITY POLICY INGESTION REPORT")
+    print("="*60)
+    
+    print(f"\nSUCCESSFULLY PROCESSED POLICY DOCUMENTS ({len(summary['successful_titles'])} total):")
+    if summary['successful_titles']:
+        for idx, title in enumerate(sorted(list(set(summary["successful_titles"]))), 1):
+            print(f"  {idx}. {title}")
+    else:
+        print("  None")
+        
+    print(f"\nRESTRICTED BYPASSES / SSO LOGIN REQUIRED ({len(restricted)} total):")
+    if restricted:
+        for idx, url in enumerate(sorted(list(set(restricted))), 1):
+            print(f"  {idx}. {url}")
+    else:
+        print("  None")
+        
+    print(f"\nFAILED / TIMED OUT DOCUMENTS ({len(failed)} total):")
+    if failed:
+        for idx, url in enumerate(sorted(list(set(failed))), 1):
+            print(f"  {idx}. {url}")
+    else:
+        print("  None")
+        
+    print("\nPIPELINE ENGINE EXTRACTION & TELEMETRY METRICS:")
+    print(f"  - Hierarchical Atomic Chunks:       {summary['warnings']['atomic_pass_chunks']}")
+    print(f"  - Cosine Variance Floor Bypasses:   {summary['warnings']['semantic_variance_bypasses']}")
+    print(f"  - Pydantic Validation Violations:   {summary['warnings']['pydantic_validation_failures']}")
+    print(f"  - Async Worker Processing Timeouts: {summary['warnings']['worker_timeout_exceptions']}")
+    print("="*60)
+    print("STATUS: Policy Ingestion Completed. Metrics Logged.")
+    print("="*60 + "\n")
 def run_web_ingestion():
     print(f"\n---  WEB CRAWL MODE (STREAMING PARALLEL) ---")
     all_links = get_all_policy_links(WEB_HUB_URL)
-    target_urls = [url for url in all_links if "/document/view.php?id=" in url]
-    
+    target_urls = all_links
+
     if not target_urls:
         return print("No policy links found.")
 
-    test_urls = sorted(list(set(target_urls)))[:10]
-    #test_urls = ["https://policies.latrobe.edu.au/document/view.php?id=204"]
+    test_urls = sorted(list(set(target_urls)))[:175]
+    # test_urls = ["https://policies.latrobe.edu.au/document/view.php?id=257"]
+    
     ledger = get_all_states()
     
     print(f"   Running Parallel CDC Check for {len(test_urls)} policies...")
     
     # Network/WAF Risk: The CDC "Thread Bomb"
     async def parallel_cdc():
-        sem = asyncio.Semaphore(10) # Max 10 concurrent CDC checks
+        sem = asyncio.Semaphore(7) # Max 10 concurrent CDC checks
         
         async def bounded_check(url):
             async with sem:
@@ -180,9 +233,20 @@ def run_web_ingestion():
     async def process_batch():
         html_queue = asyncio.Queue(maxsize=MAX_CONCURRENT_TASKS)
         
-        # 1. Use thread-safe lists that can be accessed globally by the consumers
+        # 1. Local metrics object initialized for this batch
+        batch_metrics = {
+            "successful_titles": [],
+            "warnings": {
+                "semantic_variance_bypasses": 0,
+                "pydantic_validation_failures": 0,
+                "worker_timeout_exceptions": 0,
+                "atomic_pass_chunks": 0
+            }
+        }
+        
         successful_links = []
         failed_links = []
+        restricted_links = []
         
         async def producer():
             sem = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
@@ -194,68 +258,41 @@ def run_web_ingestion():
                             await html_queue.put((idx, url, None))
                             return
                             
-                        # ==========================================
-                        # THE POISONED DATA FILTER (SSO LOGIN BLOCK)
-                        # ==========================================
-                        login_keywords = [
-                            "microsoft.com/en-GB/servicesagreement", 
-                            "Sign in to your account",
-                            "login.microsoftonline.com"
-                        ]
-                        
+                        # SSO Filter
+                        login_keywords = ["microsoft.com/en-GB/servicesagreement", "Sign in to your account", "login.microsoftonline.com"]
                         if any(keyword in raw_html for keyword in login_keywords):
-                            print(f"    [!] Skipping {url} - Redirected to SSO Login.")
-                            await html_queue.put((idx, url, None)) # Passes None so the consumer skips it
+                            await html_queue.put((idx, url, "SSO_RESTRICTED")) 
                             return
-                        # ==========================================
                         
                         soup = BeautifulSoup(raw_html, 'html.parser')
 
-                        # ==========================================
-                        # DOM MUTATOR: REWRITE FAKE TABLES TO REAL TABLES
-                        # ==========================================
-                        # La Trobe policies often use <dl> (Definition Lists) for metadata grids.
-                        # This loop finds them and rewrites them as standard HTML <table> tags
-                        # so Docling's parser knows they are structured grids!
+                        # Table Rewrite Logic
                         for dl in soup.find_all('dl'):
                             new_table = soup.new_tag('table')
-                            
                             for dt in dl.find_all('dt'):
                                 dd = dt.find_next_sibling('dd')
                                 if dd:
                                     tr = soup.new_tag('tr')
-                                    
-                                    td_key = soup.new_tag('td')
-                                    td_key.string = dt.get_text(strip=True)
-                                    
-                                    td_val = soup.new_tag('td')
-                                    td_val.string = dd.get_text(strip=True)
-                                    
-                                    tr.append(td_key)
-                                    tr.append(td_val)
+                                    td_key, td_val = soup.new_tag('td'), soup.new_tag('td')
+                                    td_key.string, td_val.string = dt.get_text(strip=True), dd.get_text(strip=True)
+                                    tr.append(td_key); tr.append(td_val)
                                     new_table.append(tr)
-                                    
                             dl.replace_with(new_table)
-                        # ==========================================
 
+                        # Metadata Status Injector
                         metadata_url = next((urljoin(url, a['href']) for a in soup.find_all('a', href=True) 
                                            if "status and details" in a.text.lower() or "status & details" in a.text.lower()), None)
-                        
                         if metadata_url:
                             meta_html = await _fetch_html(metadata_url, master_crawler)
                             if meta_html:
                                 meta_soup = BeautifulSoup(meta_html, 'html.parser')
                                 meta_content = (meta_soup.find('table') or meta_soup.find('div', class_='document-content') or meta_soup.body)
-                                
                                 if meta_content:
                                     wrapper = soup.new_tag("div", id="injected-status-details", style="border-top: 5px solid red;")
                                     meta_header = soup.new_tag("h1")
                                     meta_header.string = "SECTION 99 - STATUS AND DETAILS (METADATA)"
-                                    wrapper.append(meta_header)
-                                    wrapper.append(meta_content)
-                                    
-                                    if soup.body:
-                                        soup.body.insert(0, wrapper)
+                                    wrapper.append(meta_header); wrapper.append(meta_content)
+                                    if soup.body: soup.body.insert(0, wrapper)
                         
                         await html_queue.put((idx, url, str(soup)))
 
@@ -275,46 +312,62 @@ def run_web_ingestion():
                 
                 doc_tracker = f"[{idx+1}/{total_docs}]"
                 
-                if html_content:
+                if html_content == "SSO_RESTRICTED":
+                    await loop.run_in_executor(None, save_state, url, "RESTRICTED_SSO")
+                    restricted_links.append(url)    
+                elif html_content:
                     try:
-                        # 15-minute timeout
-                        success, source, info = await asyncio.wait_for(
+                        # Fetch the returned future payload safely
+                        success, source, worker_response = await asyncio.wait_for(
                             loop.run_in_executor(
                                 pool, cpu_bound_conversion_and_storage, url, True, html_content, doc_tracker
                             ),
                             timeout=900
                         )
                         
-                        # 2. Append directly to the outer lists
-                        if success:
+                        # FIX: Update batch_metrics targets instead of the dead global reference
+                        if success and worker_response.get("status") == "success":
                             successful_links.append(source)
                             state_val = modified_dates_dict.get(source, "web_processed")
-                            await asyncio.to_thread(save_state, source, state_val)
+                            await loop.run_in_executor(None, save_state, source, state_val)
+
+                            doc_title = worker_response["document_title"]
+                            if doc_title not in batch_metrics["successful_titles"]:
+                                batch_metrics["successful_titles"].append(doc_title)
+                            
+                            for chunk in worker_response["payloads"]:
+                                method = chunk.get("chunking_method", "")
+                                if method == "Semantic-Variance-Bypass":
+                                    batch_metrics["warnings"]["semantic_variance_bypasses"] += 1
+                                elif method == "Atomic-Pass":
+                                    batch_metrics["warnings"]["atomic_pass_chunks"] += 1
                         else:
                             failed_links.append(source)
+                            batch_metrics["warnings"]["pydantic_validation_failures"] += 1
                             
                     except asyncio.TimeoutError:
-                        print(f"{doc_tracker}  Error: Process Timeout or Worker Killed on {url}")
+                        print(f"{doc_tracker} Error: Process Timeout on {url}")
                         failed_links.append(url)
+                        batch_metrics["warnings"]["worker_timeout_exceptions"] += 1
                 else:
                     failed_links.append(url)
                 
                 html_queue.task_done()
 
+        # Executor Pool Execution
         with concurrent.futures.ProcessPoolExecutor(max_workers=MAX_CPU_WORKERS, initializer=init_worker) as pool:
             prod_task = asyncio.create_task(producer())
             cons_tasks = [asyncio.create_task(consumer(pool)) for _ in range(MAX_CPU_WORKERS)]
-            
-            # Wait for all tasks to finish
             await asyncio.gather(prod_task, *cons_tasks)
             
-        # 3. Return the exact counts
-        return len(successful_links), len(failed_links)
+        return successful_links, failed_links, restricted_links, batch_metrics
 
-    # 4. Update the final print statement
-    success_count, fail_count = asyncio.run(process_batch())
-    print(f"\n Batch Complete. Successfully Processed: {success_count} | Failed/Timed Out: {fail_count}")
-
+        
+    # Ensure all four unpacking targets capture the process batch outputs
+    successful_links, failed_links, restricted_links, batch_metrics = asyncio.run(process_batch())
+    
+    # Hand off parameters to the updated clean printer function
+    print_ingestion_dashboard(batch_metrics, failed_links, restricted_links)
 # --- NEW UNIFIED LOCAL HELPER ---
 def _process_local_batch(files, is_parallel=True):
     """DRY Helper to process files concurrently or sequentially."""
@@ -413,28 +466,20 @@ def run_local_ingestion():
     _process_local_batch(pdf_files, is_parallel=False)
 
 def run_debug(target):
-    """
-    Diagnostic tool to inspect how Docling/Crawl4AI sees a document.
-    Currently compatible with the standalone _fetch_html (no persistent crawler yet).
-    This version pushes data to Qdrant AND prints the chunks.
-    """
+    from docling_core.transforms.chunker import HierarchicalChunker
     init_worker() 
-    
-    # We will use this variable to store either the raw file path OR a temporary HTML file
     process_target = target
     temp_html_path = None
+    original_url = target # Define this here so it always exists
     
     if target.startswith("http"):
         async def quick_fetch():
             async with AsyncWebCrawler(verbose=False) as debug_crawler:
                 raw_html = await _fetch_html(target, debug_crawler)
                 if not raw_html: return None
-                
                 soup = BeautifulSoup(raw_html, 'html.parser')
                 
-                # ==========================================
-                # DOM MUTATOR: REWRITE FAKE TABLES TO REAL TABLES
-                # ==========================================
+                # --- TABLE MUTATION LOGIC ---
                 for dl in soup.find_all('dl'):
                     new_table = soup.new_tag('table')
                     for dt in dl.find_all('dt'):
@@ -449,17 +494,15 @@ def run_debug(target):
                             tr.append(td_val)
                             new_table.append(tr)
                     dl.replace_with(new_table)
-                # ==========================================
                 
+                # --- METADATA INJECTION LOGIC ---
                 metadata_url = next((urljoin(target, a['href']) for a in soup.find_all('a', href=True) 
-                                   if "status and details" in a.text.lower() or "status & details" in a.text.lower()), None)
-                
+                                    if "status and details" in a.text.lower() or "status & details" in a.text.lower()), None)
                 if metadata_url:
                     meta_html = await _fetch_html(metadata_url, debug_crawler)
                     if meta_html:
                         meta_soup = BeautifulSoup(meta_html, 'html.parser')
                         meta_content = (meta_soup.find('table') or meta_soup.find('div', class_='document-content') or meta_soup.body)
-                        
                         if meta_content:
                             wrapper = soup.new_tag("div", id="injected-status-details", style="border-top: 5px solid red;")
                             meta_header = soup.new_tag("h1")
@@ -468,70 +511,53 @@ def run_debug(target):
                             wrapper.append(meta_content)
                             if soup.body:
                                 soup.body.insert(0, wrapper) 
-                          
                 return str(soup)
 
-        print(f"\n[DEBUG] Fetching and injecting metadata for: {target}")
+        print(f"\n[DEBUG] Fetching raw HTML for: {target}")
         html_content = asyncio.run(quick_fetch())
         
-        # Write the mutated HTML to a temporary file
-        import tempfile
         if html_content:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".html", mode="w", encoding="utf-8") as temp_file:
                 temp_file.write(html_content)
                 process_target = temp_file.name
                 temp_html_path = temp_file.name
-                
-        # --- NEW: RUN THE ACTUAL PIPELINE ---
-        print(f"\n[DEBUG] Running Full Pipeline (Embedding -> Qdrant)")
-        success, _, info = cpu_bound_conversion_and_storage(process_target, True, html_content, "[DEBUG]")
-        if success:
-            print(f"Data successfully pushed to Qdrant: {info}")
-
-    else:
-        # For local PDFs, run the actual pipeline first
-        print(f"\n[DEBUG] Running Full Pipeline (Embedding -> Qdrant) for local file: {target}")
-        success, _, info = cpu_bound_conversion_and_storage(target, False, None, "[DEBUG]")
-        if success:
-            print(f"Data successfully pushed to Qdrant: {info}")
-
-    # --- SHARED DIAGNOSTIC TOOL FOR BOTH PDF AND HTML ---
-    print(f"\n[DIAGNOSTIC MODE] Printing document structure to console...")
+    
+    print(f"\n[DIAGNOSTIC MODE] Printing Docling chunk structure...")
     global worker_converter
     
     try:
+        # 1. Conversion
         result = worker_converter.convert(process_target)
         
-        from docling_core.transforms.chunker import HierarchicalChunker
-        chunker = HierarchicalChunker()
-        chunks = list(chunker.chunk(result.document))
+        # 2. Chunking (Use production logic)
+        chunker = HierarchicalChunker(
+    chunker_config={
+        "max_tokens": 1500  # Enforce a strict split for chunks that get too big
+    }
+)
+        raw_chunks = list(chunker.chunk(result.document))
+        chunks = _consolidate_semantic_chunks(raw_chunks)
         
-        print(f"\n--- DOCLING PARSE TREE ({len(chunks)} Chunks) ---")
-        for i, chunk in enumerate(chunks[:20]): 
+        # 3. Metadata Factory Logic (Run ONCE outside the loop)
+        payloads = extract_metadata_and_chunk(result.document, original_url)
+        
+        if payloads:
+            print(f"\n[DIAGNOSTIC] METADATA FACTORY DECISION:")
+            print(f"Final Document Title: '{payloads[0].get('document_title')}'")
+            print(f"Source URL:           '{payloads[0].get('source_url')}'")
+            print(f"Total Chunks Created: {len(payloads)}")
+        
+        # 4. Print Tree
+        print(f"\n--- DOCLING CONSOLIDATED PARSE TREE ({len(chunks)} Chunks) ---")
+        for i, chunk in enumerate(chunks): 
             headers = getattr(chunk.meta, 'headings', [])
-            header_str = " > ".join(headers) if headers else "TOP LEVEL (NO HEADING)"
-            
-            labels = [str(getattr(item, "label", "Unknown")) for item in getattr(chunk.meta, "doc_items", [])]
-            label_str = ", ".join(labels) if labels else "NO LABEL"
-            
+            header_str = " > ".join(headers) if headers else "TOP LEVEL"
             print(f"\nCHUNK [{i}]")
-            print(f"Detected Hierarchy: {header_str}")
-            print(f"Docling Label:      {label_str}")
-            
-            is_table = any("table" in l.lower() for l in labels)
-            if is_table:
-                # Suppress the deprecation warning
-                markdowns = [item.export_to_markdown(doc=result.document) for item in getattr(chunk.meta, "doc_items", []) if "table" in str(getattr(item, "label", "")).lower() and hasattr(item, "export_to_markdown")]
-                if markdowns:
-                    print(f"Markdown Table Preview:\n{markdowns[0]}")
-            else:
-                print(f"Raw Text Preview:\n{chunk.text.strip()[:300]}...")
+            print(f"Hierarchy:  {header_str}")
+            print(f"Full Content:\n{chunk.text.strip()}")
             print("-" * 60)
             
-        print("\nDiagnostic complete.")
-        
     finally:
-        # Clean up the temporary HTML file if we created one
         if temp_html_path and os.path.exists(temp_html_path):
             os.remove(temp_html_path)
 if __name__ == "__main__":

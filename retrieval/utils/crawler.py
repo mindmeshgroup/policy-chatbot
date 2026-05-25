@@ -39,17 +39,27 @@ def parse_document_title(source: str) -> str:
     return name.replace('-', ' ').replace('_', ' ').title()
 
 async def fetch_with_retry(session: aiohttp.ClientSession, url: str, retries=3, backoff_factor=2) -> str:
-    """Aiohttp asynchronous fetch with exponential backoff."""
+    """Aiohttp asynchronous fetch with headers and exponential backoff jitter."""
+    # The Fake Mustache: Pretend to be Google Chrome on Windows
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5"
+    }
+    
     for attempt in range(retries):
         try:
-            async with session.get(url, timeout=5) as response:
+            # Bumped timeout to 10 seconds to account for university server lag
+            async with session.get(url, headers=headers, timeout=10) as response:
                 response.raise_for_status()
                 return await response.text()
         except Exception as e:
             if attempt == retries - 1:
                 print(f"    [Network Error] Failed to fetch {url} after {retries} attempts: {e}")
                 return ""
-            await asyncio.sleep(backoff_factor * (attempt + 1))
+            # Add random jitter so retries don't all hit at the exact same millisecond
+            import random
+            await asyncio.sleep(backoff_factor * (attempt + 1) + random.uniform(0.5, 1.5))
     return ""
 
 async def check_if_updated(url: str, ledger: dict) -> tuple[bool, str, str]:
@@ -115,8 +125,24 @@ async def check_if_updated(url: str, ledger: dict) -> tuple[bool, str, str]:
 # ==========================================
 
 async def _scout_links(base_url: str) -> list:
-    """Navigation: actual policy links"""
-    config = CrawlerRunConfig(js_code=WAIT_JS, exclude_external_links=True)
+    """Navigation: actual policy links with explicit DOM wait and structural filtering"""
+    
+    # 1. THE HARD WAIT (Version-Proof)
+    # We combine the scroll and a forced 5-second pause directly into native JavaScript
+    js_wait_and_scroll = """
+    window.scrollTo(0, document.body.scrollHeight);
+    await new Promise(r => setTimeout(r, 5000));
+    """
+
+    config = CrawlerRunConfig(
+        wait_for="css:a[href*='view.php?id=']", # Wait for at least one policy link
+        js_code=js_wait_and_scroll,             # Execute our custom scroll & sleep JS
+        wait_until="networkidle",               # Wait for network to quiet down
+        exclude_external_links=True
+    )
+    
+    async with AsyncWebCrawler() as crawler:
+        result = await crawler.arun(url=base_url, config=config)
     
     async with AsyncWebCrawler() as crawler:
         result = await crawler.arun(url=base_url, config=config)
@@ -134,20 +160,17 @@ async def _scout_links(base_url: str) -> list:
             if not clean_href:
                 continue
                 
-            clean_href_lower = clean_href.lower()
+            # Ensure it is an absolute URL
+            if clean_href.startswith('/'):
+                clean_href = f"https://policies.latrobe.edu.au{clean_href}"
             
-            # [THE FIX] Poisoned Link Trap: Expanded to include non-HTML files
-            blacklist = [
-                'login', 'contact', 'search', 'intranet', 'feedback', 
-                'help', 'mailto:', 'print', 'summary=', '/browse', 'home.php',
-                '.jpg', '.png', '.pdf', '.docx', '.xlsx', '.zip'
-            ]
-            
-            if not any(junk in clean_href_lower for junk in blacklist):
+            # THE TRUE ENTERPRISE FIX: 
+            # If it's in the /document/ folder AND has an ?id=, it is a policy.
+            if "/document/" in clean_href.lower() and "id=" in clean_href.lower():
                 policy_urls.add(clean_href)
                     
         return list(policy_urls)
-
+         
 # [THE FIX] Browser Thrashing: We now pass the 'crawler' object as a parameter
 async def _fetch_html(url: str, crawler: AsyncWebCrawler, retries: int = 2) -> str:
     """Fetching - Uses Crawl4AI to get the raw HTML DOM string."""
