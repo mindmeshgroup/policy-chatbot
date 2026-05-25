@@ -46,7 +46,7 @@ async def fetch_standard_track(dense_vector, sparse_vector_obj, rbac_filter):
                 query=dense_vector,
                 using="text-dense",
                 filter=rbac_filter,
-                limit=40,
+                limit= 100,
                 score_threshold=0.30, # Keeps out low-relevance standard docs
                 params=models.SearchParams(
                     quantization=models.QuantizationSearchParams(
@@ -58,11 +58,11 @@ async def fetch_standard_track(dense_vector, sparse_vector_obj, rbac_filter):
                 query=sparse_vector_obj,
                 using="text-sparse",
                 filter=rbac_filter,
-                limit=40
+                limit=100
             )
         ],
         query=models.FusionQuery(fusion=models.Fusion.RRF),
-        limit=20
+        limit=50
     )
 
 async def fetch_exception_track(dense_vector, sparse_vector_obj, rbac_filter):
@@ -184,17 +184,26 @@ async def retrieve_policies(question: str, role: str = "Student", max_k: int = 3
             else:
                 standard_chunks.append(point)
 
-    # ==========================================
-    # TASK 2: CROSS-ENCODER RERANKING INTERCEPT
-    # ==========================================
+   
    # ==========================================
     # TASK 2: CROSS-ENCODER RERANKING INTERCEPT
     # ==========================================
     if all_points:
-        print(f"  [RERANKER] Deep evaluating {len(all_points)} total chunks...")
-        documents = [point.payload.get("content", "") for point in all_points]
+        print(f"  [RERANKER] Evaluating {len(all_points)} candidates...")
         
-        # Grade EVERYTHING
+        # OPTIMIZATION: Removed breadcrumb to focus the reranker purely 
+        # on Title-to-Content alignment.
+        documents = []
+        for point in all_points:
+            payload = point.payload
+            title = payload.get("document_title", "Unknown Document")
+            content = payload.get("content", "")
+            
+            # Focused context: prevents navigation noise from diluting relevance
+            doc_context = f"Title: {title}\nContent: {content}"
+            documents.append(doc_context)
+        
+        # Grade EVERYTHING using the focused context
         scores = await asyncio.to_thread(
             lambda: list(reranker.rerank(cleaned_query, documents))
         )
