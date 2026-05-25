@@ -76,38 +76,45 @@ def is_semantic_match(retrieved_title, expected_title):
 
 # THE EVALUATION ENGINE
 async def run_evaluation():
-    print(f" Starting Task 5 Evaluation: Testing {len(GOLDEN_DATASET)} Policies...\n")
+    print(f"\n Starting Task 5 Evaluation: Testing {len(GOLDEN_DATASET)} Policies...\n")
     
-    # [NEW] Align the Golden Dataset with actual Database reality
+    # 1. Align Golden Dataset with Database reality
     for item in GOLDEN_DATASET:
         item["expected_title"] = find_best_match(item["expected_title"])
 
     results = []
     successful_scores = []
+    reciprocal_ranks = []
     start_time = time.time()
 
     for i, item in enumerate(GOLDEN_DATASET):
         print(f"[{i+1}/{len(GOLDEN_DATASET)}] Testing Query: '{item['query']}'")
         
-        # Await the async retrieval
         response = await retrieve_policies(item["query"], role=item["role"], max_k=5)
         
         top_titles = []
         highest_correct_score = 0.0
         is_correct = False
+        rank = 0
 
-        for res in response:
+        # Calculate Recall and MRR
+        for idx, res in enumerate(response):
             title = res.get("document_title", "Unknown")
             top_titles.append(title)
             
-            if is_semantic_match(title, item["expected_title"]):
+            # If we haven't found a match yet, check this one
+            if not is_correct and is_semantic_match(title, item["expected_title"]):
                 is_correct = True
+                rank = idx + 1 # 1-based ranking
                 if "score" in res:
                     highest_correct_score = max(highest_correct_score, res["score"])
 
+        # Record metrics
+        reciprocal_ranks.append(1.0 / rank if rank > 0 else 0)
         results.append({
             "query": item["query"],
             "success": is_correct,
+            "rank": rank,
             "expected": item["expected_title"],
             "retrieved": top_titles
         })
@@ -115,9 +122,10 @@ async def run_evaluation():
         if is_correct and highest_correct_score > 0:
             successful_scores.append(highest_correct_score)
 
-    # --- 5. METRICS & TELEMETRY OUTPUT ---
+    # --- FINAL METRICS & TELEMETRY ---
     total_time = time.time() - start_time
     accuracy = sum(1 for r in results if r["success"]) / len(results)
+    mrr = statistics.mean(reciprocal_ranks) if reciprocal_ranks else 0
     
     print("\n" + "="*50)
     print("TASK 5: RETRIEVAL QUALITY CONTROL REPORT")
@@ -125,14 +133,11 @@ async def run_evaluation():
     print(f"Total Queries Tested : {len(results)}")
     print(f"Execution Time       : {total_time:.2f} seconds")
     print(f"Recall@K Accuracy    : {accuracy * 100:.2f}%")
-    
+    print(f"Mean Reciprocal Rank : {mrr:.4f}")
 
     if successful_scores:
         mean_score = statistics.mean(successful_scores)
         std_dev = statistics.stdev(successful_scores) if len(successful_scores) > 1 else 0
-        
-        # We use a 2-sigma lower bound. This is a standard statistical
-        # method to exclude the "tail" of bad matches.
         suggested_threshold = max(0.0, mean_score - (1.5 * std_dev))
         
         print(f"\n STATISTICAL THRESHOLD CALIBRATION:")
@@ -148,8 +153,7 @@ async def run_evaluation():
             print(f"   Expected: {f['expected']}")
             print(f"   Actually Got: {f['retrieved']}")
     else:
-        print("\n PERFECT RUN! Irrelevant chunks successfully filtered out.")
-
+        print("\n PERFECT RUN! All relevant chunks retrieved.")
     print("="*50)
 if __name__ == "__main__":
     asyncio.run(run_evaluation())
