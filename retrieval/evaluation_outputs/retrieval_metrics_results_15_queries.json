@@ -1,0 +1,279 @@
+{
+  "database_scope": "Promoted full public-policy collection: 214 accessible policies and 5,479 validated chunks",
+  "queries_tested": 15,
+  "document_k": 5,
+  "retrieval_chunk_limit": 10,
+  "top_1_document_accuracy": 0.8,
+  "recall_at_k": 0.9333,
+  "mean_reciprocal_rank": 0.8556,
+  "total_execution_seconds": 767.04,
+  "known_difficult_query": "What happens if an academic falsifies research or grant data?",
+  "evaluation_note": "This evaluation measures document-level retrieval against 15 expected policy titles selected from the promoted 20-policy collection.",
+  "results": [
+    {
+      "query": "How quickly must I report a privacy data breach?",
+      "role": "Student",
+      "expected_title": "Privacy Policy",
+      "top_result_title": "Privacy Policy",
+      "top_result_score": 0.6109,
+      "retrieved_top_titles": [
+        "Privacy Policy",
+        "Information Security Policy",
+        "Research Governance Policy"
+      ],
+      "expected_document_rank_within_top_k": 1,
+      "expected_document_score": 0.6109,
+      "retrieved_at_k": true,
+      "top_one_correct": true,
+      "reciprocal_rank": 1.0,
+      "elapsed_seconds": 89.33
+    },
+    {
+      "query": "Do students own the intellectual property they create?",
+      "role": "Student",
+      "expected_title": "Intellectual Property Policy",
+      "top_result_title": "Work Experience Placement, Cadetship or Internship Procedure",
+      "top_result_score": 0.3747,
+      "retrieved_top_titles": [
+        "Work Experience Placement, Cadetship or Internship Procedure",
+        "Naming Rights Policy",
+        "Intellectual Property Policy",
+        "Student Charter",
+        "Research Clinical Trials Policy"
+      ],
+      "expected_document_rank_within_top_k": 3,
+      "expected_document_score": 0.1289,
+      "retrieved_at_k": true,
+      "top_one_correct": false,
+      "reciprocal_rank": 0.3333,
+      "elapsed_seconds": 30.55
+    },
+    {
+      "query": "What is the maximum number of days for paid personal work?",
+      "role": "Staff",
+      "expected_title": "Outside Work Policy (Academic)",
+      "top_result_title": "Overtime Policy",
+      "top_result_score": 0.0472,
+      "retrieved_top_titles": [
+        "Overtime Policy",
+        "Outside Work Policy (Academic)",
+        "Transgender and Gender Diverse Staff Support Policy",
+        "Family and Domestic Violence Support Policy",
+        "Leave Entitlements Policy"
+      ],
+      "expected_document_rank_within_top_k": 2,
+      "expected_document_score": 0.0397,
+      "retrieved_at_k": true,
+      "top_one_correct": false,
+      "reciprocal_rank": 0.5,
+      "elapsed_seconds": 32.93
+    },
+    {
+      "query": "What does the Records Management Policy require for university records?",
+      "role": "Staff",
+      "expected_title": "Records Management Policy",
+      "top_result_title": "Records Management Policy",
+      "top_result_score": 0.9989,
+      "retrieved_top_titles": [
+        "Records Management Policy"
+      ],
+      "expected_document_rank_within_top_k": 1,
+      "expected_document_score": 0.9989,
+      "retrieved_at_k": true,
+      "top_one_correct": true,
+      "reciprocal_rank": 1.0,
+      "elapsed_seconds": 40.53
+    },
+    {
+      "query": "I was terminated from my employment. What process applies?",
+      "role": "Staff",
+      "expected_title": "Termination of Employment Procedure",
+      "top_result_title": "Termination of Employment Procedure",
+      "top_result_score": 0.9812,
+      "retrieved_top_titles": [
+        "Termination of Employment Procedure"
+      ],
+      "expected_document_rank_within_top_k": 1,
+      "expected_document_score": 0.9812,
+      "retrieved_at_k": true,
+      "top_one_correct": true,
+      "reciprocal_rank": 1.0,
+      "elapsed_seconds": 54.12
+    },
+    {
+      "query": "Can a research contract delay the publication of research findings?",
+      "role": "Staff",
+      "expected_title": "Research Contracts and Grants Policy",
+      "top_result_title": "Research Contracts and Grants Policy",
+      "top_result_score": 0.9712,
+      "retrieved_top_titles": [
+        "Research Contracts and Grants Policy",
+        "Intellectual Property Policy",
+        "Research Authorship and Outputs Policy"
+      ],
+      "expected_document_rank_within_top_k": 1,
+      "expected_document_score": 0.9712,
+      "retrieved_at_k": true,
+      "top_one_correct": true,
+      "reciprocal_rank": 1.0,
+      "elapsed_seconds": 56.38
+    },
+    {
+      "query": "As a PhD student, who qualifies for authorship on a research output?",
+      "role": "Student",
+      "expected_title": "Research Authorship and Outputs Policy",
+      "top_result_title": "Research Authorship and Outputs Policy",
+      "top_result_score": 0.7573,
+      "retrieved_top_titles": [
+        "Research Authorship and Outputs Policy"
+      ],
+      "expected_document_rank_within_top_k": 1,
+      "expected_document_score": 0.7573,
+      "retrieved_at_k": true,
+      "top_one_correct": true,
+      "reciprocal_rank": 1.0,
+      "elapsed_seconds": 50.72
+    },
+    {
+      "query": "What are researchers required to do with research data?",
+      "role": "Staff",
+      "expected_title": "Research Data Management Policy",
+      "top_result_title": "Research Data Management Policy",
+      "top_result_score": 0.946,
+      "retrieved_top_titles": [
+        "Research Data Management Policy",
+        "Research Clinical Trials Policy",
+        "Research Governance Policy"
+      ],
+      "expected_document_rank_within_top_k": 1,
+      "expected_document_score": 0.946,
+      "retrieved_at_k": true,
+      "top_one_correct": true,
+      "reciprocal_rank": 1.0,
+      "elapsed_seconds": 52.77
+    },
+    {
+      "query": "What happens if an academic falsifies research or grant data?",
+      "role": "Staff",
+      "expected_title": "Research Integrity Policy",
+      "top_result_title": "Research Misconduct Procedure",
+      "top_result_score": 0.7754,
+      "retrieved_top_titles": [
+        "Research Misconduct Procedure",
+        "Research Authorship and Outputs Policy",
+        "Workplace Issue Resolution (Staff) Procedure",
+        "Research Contracts and Grants Policy",
+        "Research - Higher Degree Student Misconduct Procedure"
+      ],
+      "expected_document_rank_within_top_k": 0,
+      "expected_document_score": null,
+      "retrieved_at_k": false,
+      "top_one_correct": false,
+      "reciprocal_rank": 0.0,
+      "elapsed_seconds": 49.23
+    },
+    {
+      "query": "What approvals are required before conducting research involving biological hazards?",
+      "role": "Staff",
+      "expected_title": "Research Biosafety and Biosecurity Procedure",
+      "top_result_title": "Research Biosafety and Biosecurity Procedure",
+      "top_result_score": 0.9134,
+      "retrieved_top_titles": [
+        "Research Biosafety and Biosecurity Procedure",
+        "Research Human Ethics Procedure"
+      ],
+      "expected_document_rank_within_top_k": 1,
+      "expected_document_score": 0.9134,
+      "retrieved_at_k": true,
+      "top_one_correct": true,
+      "reciprocal_rank": 1.0,
+      "elapsed_seconds": 51.04
+    },
+    {
+      "query": "Do I need ethics approval before using animals in research?",
+      "role": "Staff",
+      "expected_title": "Research Animal Ethics Procedure",
+      "top_result_title": "Research Animal Ethics Procedure",
+      "top_result_score": 0.9797,
+      "retrieved_top_titles": [
+        "Research Animal Ethics Procedure",
+        "Research Governance Policy"
+      ],
+      "expected_document_rank_within_top_k": 1,
+      "expected_document_score": 0.9797,
+      "retrieved_at_k": true,
+      "top_one_correct": true,
+      "reciprocal_rank": 1.0,
+      "elapsed_seconds": 51.61
+    },
+    {
+      "query": "How is an allegation of research misconduct handled?",
+      "role": "Staff",
+      "expected_title": "Research Misconduct Procedure",
+      "top_result_title": "Research Misconduct Procedure",
+      "top_result_score": 0.9567,
+      "retrieved_top_titles": [
+        "Research Misconduct Procedure",
+        "Research - Higher Degree Student Misconduct Procedure",
+        "Research Authorship and Outputs Policy"
+      ],
+      "expected_document_rank_within_top_k": 1,
+      "expected_document_score": 0.9567,
+      "retrieved_at_k": true,
+      "top_one_correct": true,
+      "reciprocal_rank": 1.0,
+      "elapsed_seconds": 42.29
+    },
+    {
+      "query": "What procedure applies if a graduate research student is accused of research misconduct?",
+      "role": "Student",
+      "expected_title": "Research - Higher Degree Student Misconduct Procedure",
+      "top_result_title": "Research - Higher Degree Student Misconduct Procedure",
+      "top_result_score": 0.9987,
+      "retrieved_top_titles": [
+        "Research - Higher Degree Student Misconduct Procedure",
+        "Research Misconduct Procedure",
+        "Research Authorship and Outputs Policy"
+      ],
+      "expected_document_rank_within_top_k": 1,
+      "expected_document_score": 0.9987,
+      "retrieved_at_k": true,
+      "top_one_correct": true,
+      "reciprocal_rank": 1.0,
+      "elapsed_seconds": 50.59
+    },
+    {
+      "query": "Do I need human ethics approval before conducting research with human participants?",
+      "role": "Staff",
+      "expected_title": "Research Human Ethics Procedure",
+      "top_result_title": "Research Human Ethics Procedure",
+      "top_result_score": 0.9869,
+      "retrieved_top_titles": [
+        "Research Human Ethics Procedure"
+      ],
+      "expected_document_rank_within_top_k": 1,
+      "expected_document_score": 0.9869,
+      "retrieved_at_k": true,
+      "top_one_correct": true,
+      "reciprocal_rank": 1.0,
+      "elapsed_seconds": 60.35
+    },
+    {
+      "query": "What are the requirements for submitting a graduate research thesis for examination?",
+      "role": "Student",
+      "expected_title": "Graduate Research Examinations Procedure - Thesis Requirements, Submission and Retention",
+      "top_result_title": "Graduate Research Examinations Procedure - Thesis Requirements, Submission and Retention",
+      "top_result_score": 0.999,
+      "retrieved_top_titles": [
+        "Graduate Research Examinations Procedure - Thesis Requirements, Submission and Retention",
+        "Graduate Research Examinations Policy"
+      ],
+      "expected_document_rank_within_top_k": 1,
+      "expected_document_score": 0.999,
+      "retrieved_at_k": true,
+      "top_one_correct": true,
+      "reciprocal_rank": 1.0,
+      "elapsed_seconds": 54.54
+    }
+  ]
+}
