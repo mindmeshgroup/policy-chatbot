@@ -1,355 +1,590 @@
-import json
-import ollama
-import math
-from ollama import AsyncClient # Add this to imports
 import asyncio
-from typing import List, Dict
-from qdrant_client import AsyncQdrantClient
-from qdrant_client import models
+import json
+import math
+import os
+from typing import Any
+
 from fastembed import SparseTextEmbedding
 from fastembed.rerank.cross_encoder import TextCrossEncoder
+from ollama import AsyncClient
+from qdrant_client import AsyncQdrantClient, models
+
+from retrieval.config import (
+    COLLECTION_ALIAS,
+    DENSE_MODEL_NAME,
+    DENSE_VECTOR_NAME,
+    DENSE_VECTOR_SIZE,
+    EXCEPTION_FIELD,
+    MAX_EMBED_RETRIES,
+    QDRANT_API_KEY,
+    QDRANT_URL,
+    RERANKER_MODEL_NAME,
+    ROLE_FIELD,
+    SPARSE_MODEL_NAME,
+    SPARSE_VECTOR_NAME,
+)
 from retrieval.utils.query_rewriter import rewrite_query
-# --- CONFIGURATION ---
-# IMPORTANT: Switched to AsyncQdrantClient for parallel CRAG queries
-client = AsyncQdrantClient(url="http://localhost:6333")
-COLLECTION_NAME = "university_policies"
 
-# Initialize Models
-DENSE_MODEL = "nomic-embed-text"
 
-print("Loading Sparse Embedding Model (SPLADE)...")
-sparse_model = SparseTextEmbedding(model_name="prithivida/Splade_PP_en_v1")
+# -------------------------------------------------------------------------
+# Retrieval configuration
+# -------------------------------------------------------------------------
 
-print("Loading Cross-Encoder Reranking Model...")
-reranker = TextCrossEncoder(model_name="BAAI/bge-reranker-base")
-def get_rbac_filter(role: str) -> models.Filter:
+ACTIVE_ROLES = {
+    "Student",
+    "Staff",
+    "Public",
+}
+
+STANDARD_PREFETCH_LIMIT = int(
+    os.getenv("STANDARD_PREFETCH_LIMIT", "100")
+)
+EXCEPTION_PREFETCH_LIMIT = int(
+    os.getenv("EXCEPTION_PREFETCH_LIMIT", "2")
+)
+STANDARD_RESULT_LIMIT = int(
+    os.getenv("STANDARD_RESULT_LIMIT", "50")
+)
+
+STANDARD_DENSE_SCORE_THRESHOLD = float(
+    os.getenv("STANDARD_DENSE_SCORE_THRESHOLD", "0.30")
+)
+STANDARD_SPARSE_SCORE_THRESHOLD = float(
+    os.getenv("STANDARD_SPARSE_SCORE_THRESHOLD", "0.30")
+)
+EXCEPTION_DENSE_SCORE_THRESHOLD = float(
+    os.getenv("EXCEPTION_DENSE_SCORE_THRESHOLD", "0.20")
+)
+EXCEPTION_SPARSE_SCORE_THRESHOLD = float(
+    os.getenv("EXCEPTION_SPARSE_SCORE_THRESHOLD", "0.20")
+)
+
+# Exception clauses are returned only if they are sufficiently relevant after
+# reranking; the setting remains configurable for later calibration.
+MIN_EXCEPTION_RERANK_SCORE = float(
+    os.getenv("MIN_EXCEPTION_RERANK_SCORE", "0.35")
+)
+MAX_EXCEPTION_RESULTS = int(
+    os.getenv("MAX_EXCEPTION_RESULTS", "2")
+)
+
+
+# -------------------------------------------------------------------------
+# Database and model initialisation
+# -------------------------------------------------------------------------
+
+client = AsyncQdrantClient(
+    url=QDRANT_URL,
+    api_key=QDRANT_API_KEY,
+)
+
+print("Loading sparse embedding model...")
+sparse_model = SparseTextEmbedding(
+    model_name=SPARSE_MODEL_NAME
+)
+
+print("Loading cross-encoder reranking model...")
+reranker = TextCrossEncoder(
+    model_name=RERANKER_MODEL_NAME
+)
+
+
+# -------------------------------------------------------------------------
+# Role-aware filtering
+# -------------------------------------------------------------------------
+
+def normalise_active_role(role: str | None) -> str:
     """
-    Generates the true ABAC/RBAC MatchAny filter.
-    Always grants access to Public and Guest documents.
+    Maps an incoming account role to one of the broad retrieval roles.
+
+    Guest is treated as Public because it is retained only as contextual
+    metadata, not as an active target_cohort value in the current payload.
     """
-    allowed_roles = [role, "Public", "Guest"] if role else ["Public", "Guest"]
+    candidate_role = (role or "").strip()
+
+    if candidate_role == "Guest":
+        return "Public"
+
+    if candidate_role not in ACTIVE_ROLES:
+        print(
+            f"[SECURITY WARNING] Invalid active role '{candidate_role}'. "
+            "Using Public retrieval access."
+        )
+        return "Public"
+
+    return candidate_role
+
+
+def get_role_filter(role: str) -> models.Filter:
+    """
+    Applies the active broad-role hierarchy used for retrieval.
+
+    Staff users may retrieve Student material because they may need to support
+    or advise students. Student users do not retrieve Staff-only chunks.
+    """
+    active_role = normalise_active_role(role)
+
+    if active_role == "Staff":
+        allowed_cohorts = ["Staff", "Student", "Public"]
+    elif active_role == "Student":
+        allowed_cohorts = ["Student", "Public"]
+    else:
+        allowed_cohorts = ["Public"]
+
     return models.Filter(
         must=[
             models.FieldCondition(
-                key="target_cohort",
-                match=models.MatchAny(any=allowed_roles) # Upgraded to MatchAny
+                key=ROLE_FIELD,
+                match=models.MatchAny(any=allowed_cohorts),
             )
         ]
     )
 
-async def fetch_standard_track(dense_vector, sparse_vector_obj, rbac_filter):
-    """Executes the Standard Hybrid RRF Search."""
+
+# -------------------------------------------------------------------------
+# Early query safeguards
+# -------------------------------------------------------------------------
+
+def lacks_semantic_density(question: str) -> bool:
+    """
+    Rejects questions too short to express a reliable policy retrieval intent.
+
+    This restores the original empty-state behaviour for inputs such as
+    'Hello'. One-word policy requests may be supported later through a separate
+    UI intent handler, but should not silently retrieve arbitrary evidence now.
+    """
+    return len(question.split()) < 2
+
+
+# -------------------------------------------------------------------------
+# Query embedding generation
+# -------------------------------------------------------------------------
+
+async def generate_dense_query_vector(query: str) -> list[float]:
+    """Creates one dense query vector using the same Ollama model as ingestion."""
+    last_error: Exception | None = None
+    ollama_client = AsyncClient()
+
+    for attempt in range(MAX_EMBED_RETRIES):
+        try:
+            response = await ollama_client.embed(
+                model=DENSE_MODEL_NAME,
+                input=query,
+            )
+
+            vector = response["embeddings"][0]
+
+            if len(vector) != DENSE_VECTOR_SIZE:
+                raise ValueError(
+                    f"Dense query vector size mismatch: expected "
+                    f"{DENSE_VECTOR_SIZE}, received {len(vector)}."
+                )
+
+            return vector
+
+        except Exception as exc:
+            last_error = exc
+            if attempt < MAX_EMBED_RETRIES - 1:
+                await asyncio.sleep(2 ** attempt)
+
+    raise RuntimeError(
+        f"Dense query embedding failed after "
+        f"{MAX_EMBED_RETRIES} attempts: {last_error}"
+    ) from last_error
+
+
+async def generate_sparse_query_vector(query: str) -> models.SparseVector:
+    """Creates one sparse query vector without blocking the async event loop."""
+    sparse_outputs = await asyncio.to_thread(
+        lambda: list(sparse_model.embed([query]))
+    )
+    sparse_result = sparse_outputs[0]
+
+    return models.SparseVector(
+        indices=sparse_result.indices.tolist(),
+        values=sparse_result.values.tolist(),
+    )
+
+
+# -------------------------------------------------------------------------
+# Hybrid retrieval tracks
+# -------------------------------------------------------------------------
+
+async def fetch_standard_track(
+    dense_vector: list[float],
+    sparse_vector: models.SparseVector,
+    role_filter: models.Filter,
+):
+    """Runs dense/sparse fusion over role-allowed policy chunks."""
     return await client.query_points(
-        collection_name=COLLECTION_NAME,
+        collection_name=COLLECTION_ALIAS,
         prefetch=[
             models.Prefetch(
                 query=dense_vector,
-                using="text-dense",
-                filter=rbac_filter,
-                limit= 100,
-                score_threshold=0.30, # Keeps out low-relevance standard docs
+                using=DENSE_VECTOR_NAME,
+                filter=role_filter,
+                limit=STANDARD_PREFETCH_LIMIT,
+                score_threshold=STANDARD_DENSE_SCORE_THRESHOLD,
                 params=models.SearchParams(
                     quantization=models.QuantizationSearchParams(
-                        ignore=False, rescore=True, oversampling=3.0
+                        ignore=False,
+                        rescore=True,
+                        oversampling=3.0,
                     )
-                )
+                ),
             ),
             models.Prefetch(
-                query=sparse_vector_obj,
-                using="text-sparse",
-                filter=rbac_filter,
-                limit=100
-            )
+                query=sparse_vector,
+                using=SPARSE_VECTOR_NAME,
+                filter=role_filter,
+                limit=STANDARD_PREFETCH_LIMIT,
+                score_threshold=STANDARD_SPARSE_SCORE_THRESHOLD,
+            ),
         ],
         query=models.FusionQuery(fusion=models.Fusion.RRF),
-        limit=50
+        limit=STANDARD_RESULT_LIMIT,
     )
 
-async def fetch_exception_track(dense_vector, sparse_vector_obj, rbac_filter):
-    """Executes the Exception-Targeted Hybrid RRF Search."""
-    # Create the Hard Pre-Filter for Exceptions
+
+async def fetch_exception_track(
+    dense_vector: list[float],
+    sparse_vector: models.SparseVector,
+    role_filter: models.Filter,
+):
+    """Runs an additional small search for relevant exception clauses."""
     exception_filter = models.Filter(
-        must=rbac_filter.must + [
+        must=[
+            *role_filter.must,
             models.FieldCondition(
-                key="is_exception", 
-                match=models.MatchValue(value=True)
-            )
+                key=EXCEPTION_FIELD,
+                match=models.MatchValue(value=True),
+            ),
         ]
     )
 
     return await client.query_points(
-        collection_name=COLLECTION_NAME,
+        collection_name=COLLECTION_ALIAS,
         prefetch=[
             models.Prefetch(
                 query=dense_vector,
-                using="text-dense",
+                using=DENSE_VECTOR_NAME,
                 filter=exception_filter,
-                limit=2,
-                score_threshold=0.20, # <--- Add a safety net here
+                limit=EXCEPTION_PREFETCH_LIMIT,
+                score_threshold=EXCEPTION_DENSE_SCORE_THRESHOLD,
                 params=models.SearchParams(
                     quantization=models.QuantizationSearchParams(
-                        ignore=False, rescore=True, oversampling=3.0
+                        ignore=False,
+                        rescore=True,
+                        oversampling=3.0,
                     )
-                )
+                ),
             ),
             models.Prefetch(
-                query=sparse_vector_obj,
-                using="text-sparse",
+                query=sparse_vector,
+                using=SPARSE_VECTOR_NAME,
                 filter=exception_filter,
-                limit=2
-            )
+                limit=EXCEPTION_PREFETCH_LIMIT,
+                score_threshold=EXCEPTION_SPARSE_SCORE_THRESHOLD,
+            ),
         ],
         query=models.FusionQuery(fusion=models.Fusion.RRF),
-        limit=2
+        limit=EXCEPTION_PREFETCH_LIMIT,
     )
 
-async def retrieve_policies(question: str, role: str = "Student", max_k: int = 3) -> List[Dict]:
-    """
-    Executes a True Hybrid Search (Dense + Sparse) with Reciprocal Rank Fusion (RRF).
-    Now fully asynchronous with parallel CRAG execution and Semantic Rewriting.
-    """
-    # 1. PRE-RETRIEVAL VALIDATION & REWRITING
-    VALID_ROLES = {"Student", "Academic", "Professional", "Casual", "Public", "Guest"}
-    if role not in VALID_ROLES:
-        print(f"[SECURITY WARNING] Invalid role '{role}' detected. Demoting to Public.")
-        role = "Public"
-        
-    cleaned_query = question.strip()
-    if len(cleaned_query.split()) < 2:
-        print(f"[REJECTED] Query '{cleaned_query}' lacks sufficient semantic density.")
+
+def deduplicate_points(points: list[Any]) -> list[Any]:
+    """Removes chunks retrieved by both ordinary and exception retrieval tracks."""
+    unique_points: dict[str, Any] = {}
+
+    for point in points:
+        payload = point.payload or {}
+        result_key = str(payload.get("chunk_id") or getattr(point, "id", ""))
+
+        existing = unique_points.get(result_key)
+        if existing is None:
+            unique_points[result_key] = point
+            continue
+
+        current_score = float(getattr(point, "score", 0.0) or 0.0)
+        existing_score = float(getattr(existing, "score", 0.0) or 0.0)
+
+        if current_score > existing_score:
+            unique_points[result_key] = point
+
+    return list(unique_points.values())
+
+
+async def rerank_candidates(
+    question: str,
+    points: list[Any],
+) -> list[tuple[Any, float]]:
+    """Reranks retrieved evidence chunks using the local cross-encoder."""
+    if not points:
         return []
 
-    print(f"\n[RETRIEVAL] Raw User Query: '{cleaned_query}'")
-    
-    # --- NEW: THE ASYNC REWRITER INTERCEPT ---
-    rewritten = await rewrite_query(cleaned_query, role)
-    
-    print(f"  [REWRITER] Cleaned:   {rewritten['cleaned_query']}")
-    print(f"  [REWRITER] Technical: {rewritten['technical_query']}")
-    print(f"  [REWRITER] Step-Back: {rewritten['step_back_query']}")
-    
-    # Combine variants for maximum dense vector meaning
-    optimized_semantic_query = f"{rewritten['technical_query']} {rewritten['step_back_query']}"
-    # Use cleaned variant for exact sparse keyword hits
-    optimized_keyword_query = rewritten['cleaned_query']
-
-    # 2. ASYNC VECTOR GENERATION (Using optimized queries)
-    try:
-        ollama_client = AsyncClient()
-        # Fetch the Dense embedding using the complex, technical query
-        dense_response = await ollama_client.embeddings(model=DENSE_MODEL, prompt=optimized_semantic_query)
-        dense_vector = dense_response['embedding']
-        
-        # Offload CPU-heavy Sparse embedding to a background thread using the exact keyword query
-        sparse_generator = await asyncio.to_thread(lambda: list(sparse_model.embed([optimized_keyword_query])))
-        sparse_result = sparse_generator[0]
-        
-        sparse_vector_obj = models.SparseVector(
-            indices=sparse_result.indices.tolist(),
-            values=sparse_result.values.tolist()
+    documents = []
+    for point in points:
+        payload = point.payload or {}
+        documents.append(
+            "Title: "
+            f"{payload.get('document_title', 'Unknown Document')}\n"
+            "Section: "
+            f"{payload.get('breadcrumb', '')}\n"
+            "Content: "
+            f"{payload.get('content', '')}"
         )
-    except Exception as e:
-        print(f"[ERROR] Embedding generation failed: {e}")
-        return []
-    
-    # 3. METADATA FILTERING (ABAC)
-    rbac_filter = get_rbac_filter(role)
 
-    # 4. ASYNCHRONOUS PARALLEL HYBRID SEARCH (CRAG)
-    try:
-        # Fire both Hybrid RRF queries at Qdrant simultaneously
-        standard_task = fetch_standard_track(dense_vector, sparse_vector_obj, rbac_filter)
-        exception_task = fetch_exception_track(dense_vector, sparse_vector_obj, rbac_filter)
-        
-        # Await them together (Zero Latency Overhead)
-        standard_results, exception_results = await asyncio.gather(standard_task, exception_task)
-        
-    except Exception as e:
-        print(f"[ERROR] Database query failed: {e}")
-        return []
+    raw_scores = await asyncio.to_thread(
+        lambda: list(reranker.rerank(question, documents))
+    )
 
-    # 5. CONTEXT BUNDLING & DEDUPLICATION
-    standard_chunks = []
-    exception_chunks = []
-    seen_ids = set()
+    ranked_points = []
+    for point, raw_score in zip(points, raw_scores):
+        bounded_logit = max(min(float(raw_score), 100.0), -100.0)
+        probability_score = 1 / (1 + math.exp(-bounded_logit))
+        ranked_points.append((point, probability_score))
 
-    all_points = list(standard_results.points) + list(exception_results.points)
+    ranked_points.sort(
+        key=lambda item: item[1],
+        reverse=True,
+    )
+    return ranked_points
 
-    for point in all_points:
-        chunk_id = point.payload.get("chunk_id")
-        if chunk_id not in seen_ids:
-            seen_ids.add(chunk_id)
-            if point.payload.get("is_exception") == True:
-                exception_chunks.append(point)
-            else:
-                standard_chunks.append(point)
 
-   
-   # ==========================================
-    # TASK 2: CROSS-ENCODER RERANKING INTERCEPT
-    # ==========================================
-    if all_points:
-        print(f"  [RERANKER] Evaluating {len(all_points)} candidates...")
-        
-        # OPTIMIZATION: Removed breadcrumb to focus the reranker purely 
-        # on Title-to-Content alignment.
-        documents = []
-        for point in all_points:
-            payload = point.payload
-            title = payload.get("document_title", "Unknown Document")
-            content = payload.get("content", "")
-            
-            # Focused context: prevents navigation noise from diluting relevance
-            doc_context = f"Title: {title}\nContent: {content}"
-            documents.append(doc_context)
-        
-        # Grade EVERYTHING using the focused context
-        scores = await asyncio.to_thread(
-            lambda: list(reranker.rerank(cleaned_query, documents))
-        )
-        
-        reranked_points = []
-        for point, raw_logit in zip(all_points, scores):
-            safe_logit = max(min(float(raw_logit), 100), -100)
-            probability_score = 1 / (1 + math.exp(-safe_logit))
-            point.score = probability_score # Overwrite all scores
-            reranked_points.append(point)
-        
-        # Sort everything by true probability
-        reranked_points.sort(key=lambda x: x.score, reverse=True)
-        
-        # Now, separate the top standard chunks and the top exceptions safely
-        standard_chunks = []
-        exception_chunks = []
-        
-        for point in reranked_points:
-            if point.payload.get("is_exception") == True:
-                if len(exception_chunks) < 2: # Keep max 2 exceptions
-                    exception_chunks.append(point)
-            else:
-                if len(standard_chunks) < max_k: # Keep max_k standard chunks
-                    standard_chunks.append(point)
+def select_final_points(
+    ranked_points: list[tuple[Any, float]],
+    max_k: int,
+) -> list[tuple[Any, float]]:
+    """
+    Selects standard evidence and relevant exception clauses after reranking.
+    """
+    standard_results: list[tuple[Any, float]] = []
+    exception_results: list[tuple[Any, float]] = []
 
-    final_points = standard_chunks + exception_chunks
-    # ==========================================
+    for point, score in ranked_points:
+        payload = point.payload or {}
+        is_exception = payload.get(EXCEPTION_FIELD) is True
 
-    # 6. DATA CONTRACT ENFORCEMENT
+        if is_exception:
+            if (
+                score >= MIN_EXCEPTION_RERANK_SCORE
+                and len(exception_results) < MAX_EXCEPTION_RESULTS
+            ):
+                exception_results.append((point, score))
+        elif len(standard_results) < max_k:
+            standard_results.append((point, score))
+
+    return standard_results + exception_results
+
+
+def format_results(
+    selected_points: list[tuple[Any, float]],
+) -> list[dict]:
+    """Returns evidence chunks and citation metadata for answer generation."""
     formatted_results = []
-    
-    for point in final_points:
-        payload = point.payload
-        contract_item = {
-            # --- LAYER 1: DECISION GROUP ---
-            "score": round(point.score, 4) if getattr(point, 'score', None) is not None else 0.0,
+
+    for point, rerank_score in selected_points:
+        payload = point.payload or {}
+
+        formatted_results.append({
+            "score": round(rerank_score, 4),
             "content": payload.get("content", ""),
             "has_table": payload.get("has_table", False),
-            "is_exception": payload.get("is_exception", False),
-
-            # --- LAYER 2: CITATION GROUP ---
+            "is_exception": payload.get(EXCEPTION_FIELD, False),
             "document_title": payload.get("document_title", "Unknown Document"),
             "source_url": payload.get("source_url", ""),
-            "enquiries_contact": payload.get("enquiries_contact", "University Administration"),
+            "enquiries_contact": payload.get("enquiries_contact", {}),
             "escalation_contact": payload.get("escalation_contact", "Ask La Trobe"),
             "breadcrumb": payload.get("breadcrumb", ""),
             "document_summary": payload.get("document_summary", ""),
-
-            # --- LAYER 3: VALIDATION GROUP ---
             "doc_type": payload.get("doc_type", "Policy"),
-            "category": payload.get("category", []),
-            "access_level": payload.get("access_level", "Public"),
-            "target_cohort": payload.get("target_cohort", ["Student", "Staff"]),
-            "campus_scope": payload.get("campus_scope", ["All Campuses"]),
-
-            # --- LAYER 4: ADMINISTRATIVE GROUP ---
+            "category": payload.get("category", "La Trobe Policy Library"),
+            "access_level": payload.get("access_level", ""),
+            "target_cohort": payload.get(ROLE_FIELD, []),
+            "contextual_audience_tags": payload.get("contextual_audience_tags", []),
+            "campus_scope": payload.get("campus_scope", []),
             "document_id": payload.get("document_id", ""),
-            "approval_body": payload.get("approval_body", ""),
-            "department_owner": payload.get("department_owner", ""),
-            "status": payload.get("status", "Current"),
-            "effective_date_iso": payload.get("effective_date_iso", None),
-            "review_date": payload.get("review_date", None),
+            "canonical_document_id": payload.get("canonical_document_id", ""),
+            "approval_body": payload.get("approval_body"),
+            "department_owner": payload.get("department_owner", {}),
+            "status": payload.get("status"),
+            "effective_date_iso": payload.get("effective_date_iso"),
+            "review_date": payload.get("review_date"),
             "chunk_id": payload.get("chunk_id", ""),
             "chunk_index": payload.get("chunk_index", 0),
-            "chunk_type": payload.get("chunk_type", "Text")
-        }
-        
-        formatted_results.append(contract_item)
+            "chunk_type": payload.get("chunk_type", "Text"),
+            "chunking_method": payload.get("chunking_method", ""),
+        })
 
     return formatted_results
 
-def run_validation_test(query: str, role: str):
-    print(f"\n" + "═"*60)
-    print(f"RUNNING VALIDATION FOR: '{query}'")
-    print(f"ROLE: {role}")
-    print("═"*60)
-    
-    # Notice the asyncio.run() because retrieve_policies is now an async function
-    raw_json = asyncio.run(retrieve_policies(query, role=role))
-    print(json.dumps(raw_json, indent=2))
 
-async def run_all_tests():
-   
-    print("  LA TROBE POLICYDB - HYBRID TEST SUITE  ")
-    
+# -------------------------------------------------------------------------
+# Public retrieval entry point
+# -------------------------------------------------------------------------
+
+async def retrieve_policies(
+    question: str,
+    role: str = "Student",
+    max_k: int = 3,
+) -> list[dict]:
+    """
+    Retrieves role-allowed evidence from the promoted policy collection.
+
+    Query rewriting improves the search expression only. Access is controlled
+    solely by the trusted account role supplied to this function.
+    """
+    cleaned_question = question.strip()
+
+    if not cleaned_question:
+        return []
+
+    if lacks_semantic_density(cleaned_question):
+        print(
+            f"[REJECTED] Query '{cleaned_question}' "
+            "lacks sufficient semantic density."
+        )
+        return []
+
+    if max_k < 1:
+        raise ValueError("max_k must be at least 1.")
+
+    active_role = normalise_active_role(role)
+
+    print(f"\n[RETRIEVAL] Raw user query: {cleaned_question!r}")
+    print(f"  [ROLE FILTER] Active retrieval role: {active_role}")
+
+    rewritten = await rewrite_query(
+        cleaned_question,
+        active_role,
+    )
+
+    if not rewritten.get("requires_policy_retrieval", True):
+        print(
+            "  [REJECTED] Query is outside the scope of the university "
+            "policy knowledge base."
+        )
+        return []
+
+    print(f"  [REWRITER] Cleaned:   {rewritten['cleaned_query']}")
+    print(f"  [REWRITER] Technical: {rewritten['technical_query']}")
+    print(f"  [REWRITER] Step-back: {rewritten['step_back_query']}")
+
+    if rewritten["contextual_audience_hints"]:
+        print(
+            "  [REWRITER] Context hints only: "
+            f"{rewritten['contextual_audience_hints']}"
+        )
+
+    # Keep the original words alongside rewritten forms so a poor paraphrase
+    # cannot erase important terms such as "personal work" or "falsifying".
+    semantic_query = " ".join([
+        cleaned_question,
+        rewritten["technical_query"],
+        rewritten["step_back_query"],
+    ]).strip()
+
+    keyword_query = " ".join([
+        cleaned_question,
+        rewritten["cleaned_query"],
+        rewritten["technical_query"],
+    ]).strip()
+
+    try:
+        dense_vector, sparse_vector = await asyncio.gather(
+            generate_dense_query_vector(semantic_query),
+            generate_sparse_query_vector(keyword_query),
+        )
+    except Exception as exc:
+        print(f"[ERROR] Query embedding generation failed: {exc}")
+        return []
+
+    role_filter = get_role_filter(active_role)
+
+    try:
+        standard_response, exception_response = await asyncio.gather(
+            fetch_standard_track(dense_vector, sparse_vector, role_filter),
+            fetch_exception_track(dense_vector, sparse_vector, role_filter),
+        )
+    except Exception as exc:
+        print(f"[ERROR] Qdrant retrieval failed: {exc}")
+        return []
+
+    candidate_points = deduplicate_points(
+        list(standard_response.points)
+        + list(exception_response.points)
+    )
+
+    print(
+        "  [RETRIEVAL] Unique candidate chunks before reranking: "
+        f"{len(candidate_points)}"
+    )
+
+    try:
+        ranked_points = await rerank_candidates(
+            cleaned_question,
+            candidate_points,
+        )
+    except Exception as exc:
+        print(f"[ERROR] Candidate reranking failed: {exc}")
+        return []
+
+    if not ranked_points:
+        print(
+            "  [REJECTED] No policy evidence was retrieved. "
+            "Returning an empty result."
+        )
+        return []
+
+    selected_points = select_final_points(
+        ranked_points,
+        max_k,
+    )
+
+    return format_results(selected_points)
+
+
+# -------------------------------------------------------------------------
+# Manual retrieval smoke test for the currently promoted ten-policy collection
+# -------------------------------------------------------------------------
+
+async def run_all_tests() -> None:
+    """
+    Checks direct retrieval, query rewriting and empty-state safeguards.
+
+    These are integration smoke tests only; they are not the final Recall@K or
+    MRR evaluation dataset.
+    """
     test_queries = [
         ("How quickly must I report a privacy data breach?", "Student"),
         ("Do students own the IP they create?", "Student"),
-        ("What is the maximum number of days for paid personal work?", "Academic"),
-        ("How do I get approval for University Consulting?", "Student"),
-        ("Who is the enquiries contact for Outside Work?", "Professional"),
+        ("What is the maximum number of days for paid personal work?", "Staff"),
+        ("What does the Records Management Policy require for university records?", "Staff"),
+        ("i got fired and want to apeal my termnation, how do i do that?", "Staff"),
+        ("can i start a side hustle or freelance gig if I work here full time?", "Staff"),
+        ("as a phd student, who gets to be the first author on my thesis paper?", "Student"),
+        ("what happens if an academic gets caught falsifying their grant data?", "Staff"),
         ("Where can I find a good pepperoni pizza?", "Student"),
-        ("Will the University pay for my patent protection beyond the provisional stage?", "Academic"),
-        ("Can La Trobe sign an industry contract that delays the publication of my research?", "Academic"),
-        ("Can I freely publish teaching materials that I co-authored on the internet?", "Academic"),
-        ("Are all active business records freely accessible to everyone across the University?", "Professional"),
-        ("If my expired records have been authorised for destruction, are there any situations where I still cannot destroy them?", "Professional"),
-        ("If my co-author and I are arguing over the order of our names on a paper, is that considered research misconduct?", "Academic"),
-        ("Hello", "Student")
+        ("Hello", "Student"),
     ]
-    # test_queries = [
-    #     # --- 1. THE "MESSY / SLANG" TESTS (Testing Cleaned & Technical Translation) ---
-    #     # Tests if Qwen can fix the typos and translate "fired" into "Termination of Employment"
-    #     ("i got fired and want to apeal my termnation, how do i do that?", "Professional"),
-        
-    #     # Tests if Qwen translates "side hustle/gig" into "Outside Work" and "Consulting"
-    #     ("can i start a side hustle or freelance gig if I work here full time?", "Academic"),
-        
-    #     # --- 2. THE "VAGUE / ABSTRACT" TESTS (Testing the Step-Back Prompt) ---
-    #     # Tests if Qwen abstracts "throwing away old emails" to "Records Management Data Retention"
-    #     ("what are the rules for throwing away old student emails?", "Professional"),
-        
-    #     # Tests if Qwen understands that "inventing a new app" falls under "Intellectual Property Policy"
-    #     ("if I build a new app in my dorm room, does the university own it?", "Student"),
-
-    #     # --- 3. THE "IMPLICIT FILTER" TESTS (Testing ABAC Metadata Extraction) ---
-    #     # Tests if Qwen correctly extracts the ["Academic", "HDR"] implicit filter from the text
-    #     ("I'm a lead researcher, what are the safety rules for bringing hazardous chemicals into the lab?", "Academic"),
-        
-    #     # Tests if Qwen extracts ["Student"] and maps "thesis paper" to "Research Authorship"
-    #     ("as a phd student, who gets to be the first author on my thesis paper?", "Student"),
-
-    #     # --- 4. THE "MULTI-HOP / COMPLEX" TESTS (Testing Concept Fusion) ---
-    #     # Tests if Qwen can merge Concepts: Grants + Data Management + Privacy
-    #     ("If I get a government grant, how long do I have to keep the sensitive patient data before deleting it?", "Academic"),
-        
-    #     # Tests if Qwen identifies "Research Integrity" vs standard "Termination"
-    #     ("what happens if an academic gets caught falsifying their grant data?", "Professional")
-    # ]
 
     all_results = {}
-    for query, role in test_queries:
-        print(f"\n" + "═"*60)
-        print(f"Running Validation For: '{query}' (Role: {role})")
-        print("═"*60)
-        
-        # Await safely inside a single event loop
-        res = await retrieve_policies(query, role=role)
-        all_results[query] = res
 
-    with open("test_results.json", "w") as f:
-        json.dump(all_results, f, indent=2)
-        
-    print("\n All tests complete! Open 'test_results.json' to see the full output.")
+    for query, role in test_queries:
+        print("\n" + "=" * 60)
+        print(f"Running retrieval for: {query!r} | Role: {role}")
+        print("=" * 60)
+
+        all_results[query] = await retrieve_policies(
+            query,
+            role=role,
+        )
+
+    with open("test_results.json", "w", encoding="utf-8") as file:
+        json.dump(all_results, file, indent=2)
+
+    print("\nRetrieval smoke test complete. Open test_results.json for results.")
+
 
 if __name__ == "__main__":
-    # Start the event loop ONCE for the entire script
     asyncio.run(run_all_tests())

@@ -1,578 +1,1460 @@
-import os
-import tempfile
-import asyncio  
-import concurrent.futures
-import re
-import multiprocessing
-import psutil
+import asyncio
+import datetime
 import hashlib
-from urllib.parse import urljoin
-from bs4 import BeautifulSoup
-from crawl4ai import AsyncWebCrawler
-# imports
-from retrieval.utils.metadata_factory import extract_metadata_and_chunk, _consolidate_semantic_chunks
-from retrieval.utils.vector_engine import clean_and_upsert
-from retrieval.utils.state_manager import get_all_states, save_state
+import json
+import multiprocessing
+import os
+import shutil
+import threading
+import time
+import uuid
+from collections import Counter
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
+from pathlib import Path
+from typing import Callable
 
-# Modified imports to fetch relocated helpers from crawler.py
-from retrieval.utils.crawler import (
-    get_all_policy_links, 
-    _fetch_html,
-    check_if_updated,
-    parse_document_title
+import aiohttp
+from crawl4ai import AsyncWebCrawler
+
+from retrieval.config import WEB_HUB_URL
+from retrieval.setup_db import create_candidate_collection
+from retrieval.utils.alias_manager import promote_candidate_collection
+from retrieval.utils.crawler import process_single_url, scout_policy_links
+from retrieval.utils.state_manager import get_all_states, save_states
+
+# -------------------------------------------------------------------------
+# Orchestration limits and checkpoint storage
+# -------------------------------------------------------------------------
+
+# Limit simultaneous page requests so a full-library run does not send too
+# many requests to the public policy site at once.
+MAX_WEB_STAGE_CONCURRENCY = int(
+    os.getenv("MAX_WEB_STAGE_CONCURRENCY", "7")
 )
 
-# configuration
-COLLECTION_NAME = "university_policies"
-WEB_HUB_URL = "https://policies.latrobe.edu.au/browse"
-LOCAL_FOLDER = "./policy_pdfs/"
+# Reject a candidate build when a policy remains stuck inside one stage for
+# longer than this duration.
+DOCUMENT_PROCESS_TIMEOUT_SECONDS = int(
+    os.getenv("DOCUMENT_PROCESS_TIMEOUT_SECONDS", "900")
+)
 
- # Dynamically calculate the most efficient worker limit based on your hardware
-try:
-    total_cores = multiprocessing.cpu_count()
-    total_ram_gb = psutil.virtual_memory().total / (1024 ** 3)
-    
-    # NEW MATH: ~4GB RAM per Docling worker, leaving 6GB for OS + Ollama
-    safe_ram_workers = int((total_ram_gb - 6) / 4)
-    
-    MAX_CPU_WORKERS = max(1, min(total_cores - 1, safe_ram_workers))
-    # Optional: Hard cap it at 3 for local laptop execution
-    MAX_CPU_WORKERS = min(MAX_CPU_WORKERS, 3) 
-except:
-    MAX_CPU_WORKERS = 2 # Safer fallback
+# Parsing is memory-heavy because workers may load Docling dependencies.
+MAX_CPU_WORKER_CAP = int(
+    os.getenv("MAX_CPU_WORKER_CAP", "3")
+)
 
-MAX_CONCURRENT_TASKS = 10 
-print(f"[*] Hardware optimally scaled: Running {MAX_CPU_WORKERS} parallel CPU workers.")
-def get_file_hash(filepath: str) -> str:
-    """Generates an MD5 check-digit hash of a physical file's true content."""
-    hasher = hashlib.md5()
-    with open(filepath, 'rb') as f:
-        buf = f.read(65536) 
-        while len(buf) > 0:
-            hasher.update(buf)
-            buf = f.read(65536)
-    return hasher.hexdigest()
+# Chunking remains parallel but runs separately from later Ollama-heavy stages.
+MAX_CHUNKING_WORKERS = int(
+    os.getenv("MAX_CHUNKING_WORKERS", "2")
+)
 
-def init_worker():
-    global worker_converter
-    from docling.document_converter import DocumentConverter, PdfFormatOption
-    from docling.datamodel.base_models import InputFormat
-    from docling.datamodel.pipeline_options import PdfPipelineOptions, TableFormerMode
+# Metadata validation can process two documents concurrently. If local Ollama
+# remains unstable after increasing ai_client timeout, reduce this to one.
+MAX_VALIDATION_WORKERS = int(
+    os.getenv("MAX_VALIDATION_WORKERS", "2")
+)
 
-    # 1. Enable Advanced Table Extraction for PDFs
-    pipeline_options = PdfPipelineOptions()
-    pipeline_options.do_table_structure = True
-    pipeline_options.table_structure_options.mode = TableFormerMode.ACCURATE
+# Final vector insertion remains a controlled parallel indexing stage.
+MAX_INSERTION_WORKERS = int(
+    os.getenv("MAX_INSERTION_WORKERS", "2")
+)
 
-    # 2. Bind the options to the worker's converter
-    worker_converter = DocumentConverter(
-        format_options={
-            InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
-        }
-    )
-def cpu_bound_conversion_and_storage(source: str, is_web: bool, html_content: str = None, doc_tracker: str = ""):
-    global worker_converter
-    
-    temp_title = parse_document_title(source)
-    
-    print(f"\n{doc_tracker} Parsing and Chunking: {temp_title}...")
-    
-    try:
-        temp_path = None
-        if is_web and html_content:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".html", mode="w", encoding="utf-8") as temp_file:
-                temp_file.write(html_content)
-                temp_path = temp_file.name
-            
-            # The Temp File Leak (Guarantee Cleanup)
-            try:
-                result = worker_converter.convert(temp_path)
-            finally:
-                if temp_path and os.path.exists(temp_path):
-                    os.remove(temp_path)
-        else:
-            result = worker_converter.convert(source)
+# Number of policies used by the end-to-end publication-path test.
+PIPELINE_TEST_DOCUMENT_LIMIT = int(
+    os.getenv("PIPELINE_TEST_DOCUMENT_LIMIT", "10")
+)
 
-        markdown_text = result.document.export_to_markdown()
-        
-        if len(markdown_text) < 200:
-            msg = f"[UNPROCESSABLE]: Skipped {temp_title} (Insufficient content)"
-            print(f"{doc_tracker} Error:  {msg}")
-            return True, source, msg
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+RUNS_DIR = PROJECT_ROOT / "data" / "runs"
+RUNS_DIR.mkdir(parents=True, exist_ok=True)
 
-        payloads = extract_metadata_and_chunk(result.document, source_path=source)
-        
-        if not payloads:
-            msg = f"[UNPROCESSABLE]: Skipped {temp_title} (Failed to chunk)"
-            print(f"{doc_tracker} Error:  {msg}")
-            return True, source, msg
+# Completed worker results update the same checkpoint file frequently during
+# parallel processing. This lock ensures one in-process manifest write is
+# completed before another replacement begins.
+_MANIFEST_WRITE_LOCK = threading.Lock()
 
-        # --- THE SECTION 99 FILTER FIX ---
-        filtered_payloads = []
-        for p in payloads:
-            clean_text = re.sub(r'\s+', ' ', p.get('content', '')).strip()
-            breadcrumb = p.get('breadcrumb', '')
-            
-            # If the chunk contains the injected Section 99 table, drop it!
-            if "SECTION 99" not in breadcrumb and "SECTION 99" not in clean_text:
-                filtered_payloads.append(p)
-                
-        payloads = filtered_payloads
-        if not payloads:
-            return True, source, "Skipped (Only metadata found)"
-        
-        # 1. Database execution occurs exactly ONCE
-        clean_and_upsert(COLLECTION_NAME, payloads, source)
-        real_title = payloads[0].get('document_title', temp_title) if payloads else temp_title
-        
-        # 2. Terminal log status outputs exactly ONCE
-        print(f"{doc_tracker} Successfully Indexed: {real_title} ({len(payloads)} chunks)")
-        
-        # 3. Safely returns the packaged payload dictionary back to the parent consumer loop
-        return True, source, {
-            "status": "success",
-            "document_title": real_title,
-            "payloads": payloads
-        }
-        
-    except Exception as e:
-        print(f"{doc_tracker}  Error: {str(e)}")
-        return False, source, {
-            "status": "failed",
-            "error_msg": str(e)
-        }
-       
-ingestion_summary = {
-    "successful_titles": [],
-    "warnings": {
-        "semantic_variance_bypasses": 0,
-        "pydantic_validation_failures": 0,
-        "worker_timeout_exceptions": 0,
-        "atomic_pass_chunks": 0
-    }
+# Windows can temporarily deny an atomic replacement when the file is briefly
+# locked by filesystem activity or security scanning. Retry rather than fail
+# the entire ingestion build because of a short-lived checkpoint write issue.
+_MANIFEST_WRITE_RETRIES = int(
+    os.getenv("MANIFEST_WRITE_RETRIES", "8")
+)
+
+STAGES = (
+    "staged",
+    "parsed",
+    "chunked",
+    "validated",
+    "inserted",
+)
+
+PATH_FIELDS = {
+    "staged": "file_path",
+    "parsed": "parsed_path",
+    "chunked": "chunked_path",
+    "validated": "validated_path",
 }
 
-def print_ingestion_dashboard(summary, failed, restricted):
-    print("\n" + "="*60)
-    print("LA TROBE UNIVERSITY POLICY INGESTION REPORT")
-    print("="*60)
-    
-    print(f"\nSUCCESSFULLY PROCESSED POLICY DOCUMENTS ({len(summary['successful_titles'])} total):")
-    if summary['successful_titles']:
-        for idx, title in enumerate(sorted(list(set(summary["successful_titles"]))), 1):
-            print(f"  {idx}. {title}")
-    else:
-        print("  None")
-        
-    print(f"\nRESTRICTED BYPASSES / SSO LOGIN REQUIRED ({len(restricted)} total):")
-    if restricted:
-        for idx, url in enumerate(sorted(list(set(restricted))), 1):
-            print(f"  {idx}. {url}")
-    else:
-        print("  None")
-        
-    print(f"\nFAILED / TIMED OUT DOCUMENTS ({len(failed)} total):")
-    if failed:
-        for idx, url in enumerate(sorted(list(set(failed))), 1):
-            print(f"  {idx}. {url}")
-    else:
-        print("  None")
-        
-    print("\nPIPELINE ENGINE EXTRACTION & TELEMETRY METRICS:")
-    print(f"  - Hierarchical Atomic Chunks:       {summary['warnings']['atomic_pass_chunks']}")
-    print(f"  - Cosine Variance Floor Bypasses:   {summary['warnings']['semantic_variance_bypasses']}")
-    print(f"  - Pydantic Validation Violations:   {summary['warnings']['pydantic_validation_failures']}")
-    print(f"  - Async Worker Processing Timeouts: {summary['warnings']['worker_timeout_exceptions']}")
-    print("="*60)
-    print("STATUS: Policy Ingestion Completed. Metrics Logged.")
-    print("="*60 + "\n")
-def run_web_ingestion():
-    print(f"\n---  WEB CRAWL MODE (STREAMING PARALLEL) ---")
-    all_links = get_all_policy_links(WEB_HUB_URL)
-    target_urls = all_links
 
-    if not target_urls:
-        return print("No policy links found.")
+# -------------------------------------------------------------------------
+# Checkpoint manifest helpers
+# -------------------------------------------------------------------------
 
-    test_urls = sorted(list(set(target_urls)))[:175]
-    # test_urls = ["https://policies.latrobe.edu.au/document/view.php?id=257"]
-    
-    ledger = get_all_states()
-    
-    print(f"   Running Parallel CDC Check for {len(test_urls)} policies...")
-    
-    # Network/WAF Risk: The CDC "Thread Bomb"
-    async def parallel_cdc():
-        sem = asyncio.Semaphore(7) # Max 10 concurrent CDC checks
-        
-        async def bounded_check(url):
-            async with sem:
-                # Updated to directly await since check_if_updated is now an async function
-                return await check_if_updated(url, ledger)
-                
-        tasks = [asyncio.create_task(bounded_check(url)) for url in test_urls]
-        return await asyncio.gather(*tasks)
+def utc_timestamp() -> str:
+    """Creates a readable UTC timestamp for checkpointed run identifiers."""
+    return datetime.datetime.now(
+        datetime.timezone.utc
+    ).strftime("%Y%m%d_%H%M%S_%f")
 
-    cdc_results = asyncio.run(parallel_cdc())
-    links_to_process = []
-    modified_dates_dict = {}
-    for needs_update, url, modified_date in cdc_results:
-        if needs_update:
-            links_to_process.append(url)
-            modified_dates_dict[url] = modified_date
-        else:
-            doc_title = parse_document_title(url)
-            print(f"[SKIPPED] {doc_title} | {url} (No changes detected)")
-    
-    if not links_to_process:
-        return print("\n  All policies up to date.")
 
-    total_docs = len(links_to_process)
-    print(f"\n Launching Streaming I/O Architecture for {total_docs} documents...")
+def manifest_path(run_id: str) -> Path:
+    """Returns the manifest path for one checkpointed ingestion run."""
+    return RUNS_DIR / run_id / "manifest.json"
 
-    async def process_batch():
-        html_queue = asyncio.Queue(maxsize=MAX_CONCURRENT_TASKS)
-        
-        # 1. Local metrics object initialized for this batch
-        batch_metrics = {
-            "successful_titles": [],
-            "warnings": {
-                "semantic_variance_bypasses": 0,
-                "pydantic_validation_failures": 0,
-                "worker_timeout_exceptions": 0,
-                "atomic_pass_chunks": 0
+
+def save_manifest(manifest: dict) -> None:
+    """
+    Persists one checkpoint manifest using a Windows-safe atomic write.
+
+    During a parallel stage, completed document results are recorded frequently.
+    A unique temporary filename prevents collisions with a previous temporary
+    manifest, while retrying os.replace handles short Windows file-lock events
+    without cancelling the complete ingestion run.
+    """
+    path = manifest_path(manifest["run_id"])
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    last_error: Exception | None = None
+
+    with _MANIFEST_WRITE_LOCK:
+        for attempt in range(1, _MANIFEST_WRITE_RETRIES + 1):
+            temporary_path = path.with_name(
+                f".{path.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp"
+            )
+
+            try:
+                with open(temporary_path, "w", encoding="utf-8") as file:
+                    json.dump(manifest, file, indent=2)
+                    file.flush()
+                    os.fsync(file.fileno())
+
+                # Atomic publication of a fully written checkpoint file.
+                os.replace(temporary_path, path)
+                return
+
+            except PermissionError as exc:
+                last_error = exc
+
+                try:
+                    temporary_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+
+                if attempt < _MANIFEST_WRITE_RETRIES:
+                    delay_seconds = 0.25 * attempt
+                    print(
+                        "[WARN] Windows temporarily locked the checkpoint "
+                        f"manifest. Retrying save in {delay_seconds:.2f} seconds..."
+                    )
+                    time.sleep(delay_seconds)
+                    continue
+
+                raise RuntimeError(
+                    "Checkpoint manifest could not be saved after repeated "
+                    "Windows file-lock retries."
+                ) from exc
+
+            except Exception:
+                try:
+                    temporary_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+                raise
+
+    raise RuntimeError(
+        f"Checkpoint manifest could not be saved: {last_error}"
+    )
+
+
+def load_manifest(path: Path) -> dict:
+    """Loads a previously checkpointed ingestion run."""
+    with open(path, "r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def checkpoint_artifact(
+    manifest: dict,
+    stage: str,
+    source_path: str,
+    source_url: str,
+) -> str:
+    """
+    Copies one completed intermediate output into this run's checkpoint folder.
+
+    The processing utilities also save outputs in their normal data folders.
+    Keeping a run-specific copy prevents a later new build from overwriting the
+    files needed to resume this unpublished candidate.
+    """
+    original_path = Path(source_path)
+
+    if not original_path.exists():
+        raise FileNotFoundError(
+            f"Cannot checkpoint missing {stage} output: {original_path}"
+        )
+
+    document_key = hashlib.sha256(
+        source_url.encode("utf-8")
+    ).hexdigest()[:12]
+
+    stage_directory = (
+        manifest_path(manifest["run_id"]).parent
+        / "artifacts"
+        / stage
+    )
+    stage_directory.mkdir(parents=True, exist_ok=True)
+
+    saved_path = stage_directory / f"{document_key}_{original_path.name}"
+    shutil.copy2(original_path, saved_path)
+
+    return str(saved_path)
+
+
+def create_manifest(
+    selected_links: list[str],
+    mode: str,
+) -> dict:
+    """
+    Creates a new manifest for a rebuild or publication-path test.
+
+    The candidate collection is recorded later, once all documents have passed
+    validation and vector insertion is ready to begin.
+    """
+    run_id = f"run_{utc_timestamp()}"
+
+    manifest = {
+        "run_id": run_id,
+        "mode": mode,
+        "created_at_utc": datetime.datetime.now(
+            datetime.timezone.utc
+        ).isoformat(),
+        "status": "created",
+        "candidate_collection": None,
+        "alias_promoted": False,
+        "ledger_updated": False,
+        "promoted": False,
+        "documents": {
+            url: {
+                "url": url,
+                "title": url,
+                "content_hash": None,
+                "is_updated": True,
+                "restricted": False,
+                "stages": {
+                    stage: "pending"
+                    for stage in STAGES
+                },
+                "error": None,
             }
+            for url in selected_links
+        },
+    }
+
+    save_manifest(manifest)
+    return manifest
+
+
+def find_latest_incomplete_manifest() -> dict | None:
+    """
+    Returns the most recently modified unpublished run manifest, if one exists.
+    """
+    candidates = []
+
+    for path in RUNS_DIR.glob("*/manifest.json"):
+        try:
+            manifest = load_manifest(path)
+        except (OSError, json.JSONDecodeError):
+            continue
+
+        if not manifest.get("promoted", False):
+            candidates.append(
+                (path.stat().st_mtime, manifest)
+            )
+
+    if not candidates:
+        return None
+
+    candidates.sort(
+        key=lambda item: item[0],
+        reverse=True,
+    )
+
+    return candidates[0][1]
+
+
+def reset_from_stage(document: dict, failed_stage: str) -> None:
+    """
+    Resets one document from a missing or invalid checkpoint output onward.
+    """
+    start_index = STAGES.index(failed_stage)
+
+    for stage in STAGES[start_index:]:
+        document["stages"][stage] = "pending"
+
+        path_field = PATH_FIELDS.get(stage)
+        if path_field:
+            document.pop(path_field, None)
+
+    document["error"] = (
+        f"Saved checkpoint output for '{failed_stage}' was unavailable; "
+        "the document will be regenerated from this stage."
+    )
+
+
+def repair_missing_checkpoint_files(manifest: dict) -> None:
+    """
+    Invalidates a completed stage when its saved intermediate file no longer exists.
+    """
+    repaired = False
+
+    for document in manifest["documents"].values():
+        if document.get("restricted"):
+            continue
+
+        for stage in ("staged", "parsed", "chunked", "validated"):
+            if document["stages"].get(stage) != "success":
+                break
+
+            saved_path = document.get(PATH_FIELDS[stage])
+
+            if not saved_path or not Path(saved_path).exists():
+                reset_from_stage(document, stage)
+                repaired = True
+                break
+
+    if repaired:
+        manifest["status"] = "checkpoint_repaired"
+        save_manifest(manifest)
+
+
+def accessible_documents(manifest: dict) -> list[dict]:
+    """Returns documents that should proceed through ingestion and indexing."""
+    return [
+        document
+        for document in manifest["documents"].values()
+        if not document.get("restricted", False)
+    ]
+
+
+def restricted_documents(manifest: dict) -> list[dict]:
+    """Returns authenticated pages deliberately excluded from public indexing."""
+    return [
+        document
+        for document in manifest["documents"].values()
+        if document.get("restricted", False)
+    ]
+
+
+def stage_complete_for_accessible_documents(
+    manifest: dict,
+    stage: str,
+) -> bool:
+    """Checks whether every accessible policy completed the required stage."""
+    documents = accessible_documents(manifest)
+
+    return bool(documents) and all(
+        document["stages"].get(stage) == "success"
+        for document in documents
+    )
+
+
+def stage_failures(
+    manifest: dict,
+    stage: str,
+) -> list[dict]:
+    """Returns failures recorded for one processing stage."""
+    failures = []
+
+    for document in accessible_documents(manifest):
+        if document["stages"].get(stage) == "failed":
+            failures.append({
+                "status": "failed",
+                "stage": stage,
+                "url": document["url"],
+                "title": document.get("title", document["url"]),
+                "error": document.get("error", "Unknown error"),
+            })
+
+    return failures
+
+
+def inserted_results_from_manifest(manifest: dict) -> list[dict]:
+    """Builds reporting results from documents already inserted successfully."""
+    return [
+        {
+            "url": document["url"],
+            "title": document.get("title", document["url"]),
+            "content_hash": document.get("content_hash"),
+            "chunk_count": document.get("chunk_count", 0),
+            "chunking_methods": document.get("chunking_methods", {}),
         }
-        
-        successful_links = []
-        failed_links = []
-        restricted_links = []
-        
-        async def producer():
-            sem = asyncio.Semaphore(MAX_CONCURRENT_TASKS)
-            async with AsyncWebCrawler(verbose=False) as master_crawler:
-                async def fetch_task(idx, url):
-                    async with sem:
-                        raw_html = await _fetch_html(url, master_crawler)
-                        if not raw_html:
-                            await html_queue.put((idx, url, None))
-                            return
-                            
-                        # SSO Filter
-                        login_keywords = ["microsoft.com/en-GB/servicesagreement", "Sign in to your account", "login.microsoftonline.com"]
-                        if any(keyword in raw_html for keyword in login_keywords):
-                            await html_queue.put((idx, url, "SSO_RESTRICTED")) 
-                            return
-                        
-                        soup = BeautifulSoup(raw_html, 'html.parser')
+        for document in accessible_documents(manifest)
+        if document["stages"].get("inserted") == "success"
+    ]
 
-                        # Table Rewrite Logic
-                        for dl in soup.find_all('dl'):
-                            new_table = soup.new_tag('table')
-                            for dt in dl.find_all('dt'):
-                                dd = dt.find_next_sibling('dd')
-                                if dd:
-                                    tr = soup.new_tag('tr')
-                                    td_key, td_val = soup.new_tag('td'), soup.new_tag('td')
-                                    td_key.string, td_val.string = dt.get_text(strip=True), dd.get_text(strip=True)
-                                    tr.append(td_key); tr.append(td_val)
-                                    new_table.append(tr)
-                            dl.replace_with(new_table)
 
-                        # Metadata Status Injector
-                        metadata_url = next((urljoin(url, a['href']) for a in soup.find_all('a', href=True) 
-                                           if "status and details" in a.text.lower() or "status & details" in a.text.lower()), None)
-                        if metadata_url:
-                            meta_html = await _fetch_html(metadata_url, master_crawler)
-                            if meta_html:
-                                meta_soup = BeautifulSoup(meta_html, 'html.parser')
-                                meta_content = (meta_soup.find('table') or meta_soup.find('div', class_='document-content') or meta_soup.body)
-                                if meta_content:
-                                    wrapper = soup.new_tag("div", id="injected-status-details", style="border-top: 5px solid red;")
-                                    meta_header = soup.new_tag("h1")
-                                    meta_header.string = "SECTION 99 - STATUS AND DETAILS (METADATA)"
-                                    wrapper.append(meta_header); wrapper.append(meta_content)
-                                    if soup.body: soup.body.insert(0, wrapper)
-                        
-                        await html_queue.put((idx, url, str(soup)))
+def restricted_results_from_manifest(manifest: dict) -> list[dict]:
+    """Builds ledger/reporting records for intentionally excluded restricted pages."""
+    return [
+        {
+            "url": document["url"],
+            "title": document.get("title", document["url"]),
+            "hash": document.get("content_hash"),
+            "content_hash": document.get("content_hash"),
+            "is_updated": document.get("is_updated", True),
+        }
+        for document in restricted_documents(manifest)
+    ]
 
-                tasks = [asyncio.create_task(fetch_task(i, url)) for i, url in enumerate(links_to_process)]
-                await asyncio.gather(*tasks)
-                
-            for _ in range(MAX_CPU_WORKERS):
-                await html_queue.put((None, None, None))
 
-        async def consumer(pool):
-            loop = asyncio.get_running_loop()
-            while True:
-                idx, url, html_content = await html_queue.get()
-                if url is None: 
-                    html_queue.task_done()
-                    break
-                
-                doc_tracker = f"[{idx+1}/{total_docs}]"
-                
-                if html_content == "SSO_RESTRICTED":
-                    await loop.run_in_executor(None, save_state, url, "RESTRICTED_SSO")
-                    restricted_links.append(url)    
-                elif html_content:
-                    try:
-                        # Fetch the returned future payload safely
-                        success, source, worker_response = await asyncio.wait_for(
-                            loop.run_in_executor(
-                                pool, cpu_bound_conversion_and_storage, url, True, html_content, doc_tracker
-                            ),
-                            timeout=900
-                        )
-                        
-                        # FIX: Update batch_metrics targets instead of the dead global reference
-                        if success and worker_response.get("status") == "success":
-                            successful_links.append(source)
-                            state_val = modified_dates_dict.get(source, "web_processed")
-                            await loop.run_in_executor(None, save_state, source, state_val)
+def changed_count_from_manifest(manifest: dict) -> int:
+    """Counts staged or restricted policy pages that changed since publication."""
+    return sum(
+        1
+        for document in manifest["documents"].values()
+        if document.get("is_updated", True)
+    )
 
-                            doc_title = worker_response["document_title"]
-                            if doc_title not in batch_metrics["successful_titles"]:
-                                batch_metrics["successful_titles"].append(doc_title)
-                            
-                            for chunk in worker_response["payloads"]:
-                                method = chunk.get("chunking_method", "")
-                                if method == "Semantic-Variance-Bypass":
-                                    batch_metrics["warnings"]["semantic_variance_bypasses"] += 1
-                                elif method == "Atomic-Pass":
-                                    batch_metrics["warnings"]["atomic_pass_chunks"] += 1
-                        else:
-                            failed_links.append(source)
-                            batch_metrics["warnings"]["pydantic_validation_failures"] += 1
-                            
-                    except asyncio.TimeoutError:
-                        print(f"{doc_tracker} Error: Process Timeout on {url}")
-                        failed_links.append(url)
-                        batch_metrics["warnings"]["worker_timeout_exceptions"] += 1
+
+# -------------------------------------------------------------------------
+# Worker sizing and stage workers
+# -------------------------------------------------------------------------
+
+def calculate_safe_workers() -> int:
+    """Selects a conservative base worker count from local CPU and RAM."""
+    try:
+        import psutil
+
+        detected_ram_gb = psutil.virtual_memory().total / (1024 ** 3)
+    except ImportError:
+        detected_ram_gb = 16.0
+
+    available_ram_gb = float(
+        os.getenv("INGESTION_AVAILABLE_RAM_GB", str(detected_ram_gb))
+    )
+
+    memory_limited_workers = max(
+        1,
+        int((available_ram_gb - 6) / 4),
+    )
+
+    return max(
+        1,
+        min(
+            max(1, multiprocessing.cpu_count() - 1),
+            memory_limited_workers,
+            MAX_CPU_WORKER_CAP,
+        ),
+    )
+
+
+def parse_staged_policy(capsule: dict) -> dict:
+    """Parses one saved HTML policy and returns its structured JSON path."""
+    from retrieval.utils.parser import parse_and_save
+
+    title = capsule.get("title", capsule["url"])
+
+    try:
+        parsed_path = parse_and_save(capsule["file_path"])
+
+        return {
+            **capsule,
+            "status": "success",
+            "parsed_path": parsed_path,
+        }
+
+    except Exception as exc:
+        return {
+            "status": "failed",
+            "stage": "parsed",
+            "url": capsule["url"],
+            "title": title,
+            "error": str(exc),
+        }
+
+
+def chunk_parsed_policy(parsed_result: dict) -> dict:
+    """
+    Applies semantic retrieval chunking to one parsed policy document.
+
+    Chunking-time embeddings locate semantic boundaries; these are separate
+    from the final dense and sparse vectors later stored in Qdrant.
+    """
+    from retrieval.utils.chunker import apply_semantic_chunking
+
+    title = parsed_result.get("title", parsed_result["url"])
+
+    try:
+        chunked_path = apply_semantic_chunking(
+            parsed_result["parsed_path"]
+        )
+
+        return {
+            **parsed_result,
+            "status": "success",
+            "chunked_path": chunked_path,
+        }
+
+    except Exception as exc:
+        return {
+            "status": "failed",
+            "stage": "chunked",
+            "url": parsed_result["url"],
+            "title": title,
+            "error": str(exc),
+        }
+
+
+def validate_chunked_policy(chunked_result: dict) -> dict:
+    """Validates and tags one chunked document before database insertion."""
+    from retrieval.utils.payload_builder import validate_and_tag_document
+
+    title = chunked_result.get("title", chunked_result["url"])
+
+    try:
+        validated_path = validate_and_tag_document(
+            chunked_result["chunked_path"]
+        )
+
+        with open(validated_path, "r", encoding="utf-8") as file:
+            validated_data = json.load(file)
+
+        chunks = validated_data.get("chunks", [])
+
+        if not chunks:
+            raise RuntimeError("No validated chunks were produced.")
+
+        method_counts = Counter(
+            chunk.get("chunking_method", "Unknown")
+            for chunk in chunks
+        )
+
+        return {
+            **chunked_result,
+            "status": "success",
+            "validated_path": validated_path,
+            "chunk_count": len(chunks),
+            "chunking_methods": dict(method_counts),
+        }
+
+    except Exception as exc:
+        return {
+            "status": "failed",
+            "stage": "validated",
+            "url": chunked_result["url"],
+            "title": title,
+            "error": str(exc),
+        }
+
+
+def insert_validated_policy(task: dict) -> dict:
+    """
+    Generates final hybrid vectors and inserts one validated policy document.
+
+    Multiple policies may be inserted concurrently. Each insertion worker limits
+    dense embedding calls within its document to one request at a time.
+    """
+    from retrieval.utils.vector_engine import clean_and_upsert
+
+    validated_result = task["validated_result"]
+    candidate_collection = task["candidate_collection"]
+    title = validated_result.get("title", validated_result["url"])
+
+    try:
+        with open(
+            validated_result["validated_path"],
+            "r",
+            encoding="utf-8",
+        ) as file:
+            validated_data = json.load(file)
+
+        chunks = validated_data.get("chunks", [])
+
+        if not chunks:
+            raise RuntimeError("No validated chunks were available for insertion.")
+
+        clean_and_upsert(
+            collection_name=candidate_collection,
+            payloads=chunks,
+            max_dense_workers=1,
+        )
+
+        return {
+            **validated_result,
+            "status": "success",
+        }
+
+    except Exception as exc:
+        return {
+            "status": "failed",
+            "stage": "inserted",
+            "url": validated_result["url"],
+            "title": title,
+            "error": str(exc),
+        }
+
+
+def run_stage_with_timeout(
+    inputs: list[dict],
+    worker_function: Callable[[dict], dict],
+    stage_name: str,
+    max_workers: int,
+    record_result: Callable[[dict], None],
+) -> tuple[list[dict], list[dict]]:
+    """
+    Runs one processing stage with controlled workers and immediate checkpointing.
+
+    Only enough tasks to fill available workers are submitted at once. Timeout
+    measurement therefore reflects assigned processing time rather than time
+    spent waiting behind earlier documents.
+    """
+    if not inputs:
+        return [], []
+
+    successful_results: list[dict] = []
+    failures: list[dict] = []
+    queued_inputs = iter(inputs)
+    timeout_detected = False
+    executor = ProcessPoolExecutor(max_workers=max_workers)
+    future_to_input: dict = {}
+    pending: set = set()
+
+    def submit_next():
+        try:
+            item = next(queued_inputs)
+        except StopIteration:
+            return None
+
+        future = executor.submit(worker_function, item)
+        future_to_input[future] = {
+            "item": item,
+            "submitted_at": time.monotonic(),
+        }
+        return future
+
+    for _ in range(min(max_workers, len(inputs))):
+        future = submit_next()
+        if future is not None:
+            pending.add(future)
+
+    try:
+        while pending:
+            completed, still_pending = wait(
+                pending,
+                timeout=1,
+                return_when=FIRST_COMPLETED,
+            )
+            pending = set(still_pending)
+
+            for future in completed:
+                item = future_to_input[future]["item"]
+
+                try:
+                    result = future.result()
+                except Exception as exc:
+                    result = {
+                        "status": "failed",
+                        "stage": stage_name,
+                        "url": item.get("url", "Unknown source"),
+                        "title": item.get("title", item.get("url", "Unknown source")),
+                        "error": str(exc),
+                    }
+
+                record_result(result)
+
+                if result["status"] == "success":
+                    successful_results.append(result)
                 else:
-                    failed_links.append(url)
-                
-                html_queue.task_done()
+                    failures.append(result)
 
-        # Executor Pool Execution
-        with concurrent.futures.ProcessPoolExecutor(max_workers=MAX_CPU_WORKERS, initializer=init_worker) as pool:
-            prod_task = asyncio.create_task(producer())
-            cons_tasks = [asyncio.create_task(consumer(pool)) for _ in range(MAX_CPU_WORKERS)]
-            await asyncio.gather(prod_task, *cons_tasks)
-            
-        return successful_links, failed_links, restricted_links, batch_metrics
+                next_future = submit_next()
+                if next_future is not None:
+                    pending.add(next_future)
 
-        
-    # Ensure all four unpacking targets capture the process batch outputs
-    successful_links, failed_links, restricted_links, batch_metrics = asyncio.run(process_batch())
-    
-    # Hand off parameters to the updated clean printer function
-    print_ingestion_dashboard(batch_metrics, failed_links, restricted_links)
-# --- NEW UNIFIED LOCAL HELPER ---
-def _process_local_batch(files, is_parallel=True):
-    """DRY Helper to process files concurrently or sequentially."""
-    if not files:
+            now = time.monotonic()
+            timed_out_futures = [
+                future
+                for future in pending
+                if now - future_to_input[future]["submitted_at"]
+                > DOCUMENT_PROCESS_TIMEOUT_SECONDS
+            ]
+
+            if timed_out_futures:
+                timeout_detected = True
+
+                for future in timed_out_futures:
+                    item = future_to_input[future]["item"]
+
+                    if "validated_result" in item:
+                        timed_out_item = item["validated_result"]
+                    else:
+                        timed_out_item = item
+
+                    timeout_result = {
+                        "status": "failed",
+                        "stage": stage_name,
+                        "url": timed_out_item.get("url", "Unknown source"),
+                        "title": timed_out_item.get(
+                            "title",
+                            timed_out_item.get("url", "Unknown source"),
+                        ),
+                        "error": (
+                            f"Document exceeded {DOCUMENT_PROCESS_TIMEOUT_SECONDS} "
+                            f"seconds during {stage_name}."
+                        ),
+                    }
+
+                    record_result(timeout_result)
+                    failures.append(timeout_result)
+                    future.cancel()
+                    pending.discard(future)
+
+                for future in pending:
+                    future.cancel()
+
+                break
+
+    finally:
+        executor.shutdown(
+            wait=not timeout_detected,
+            cancel_futures=timeout_detected,
+        )
+
+    return successful_results, failures
+
+
+# -------------------------------------------------------------------------
+# HTML staging and per-stage checkpoint updates
+# -------------------------------------------------------------------------
+
+async def stage_pending_html(
+    manifest: dict,
+    ledger: dict[str, str],
+) -> None:
+    """Stages only policy pages not already saved successfully in this run."""
+    pending_urls = [
+        document["url"]
+        for document in manifest["documents"].values()
+        if document["stages"].get("staged") != "success"
+        and not document.get("restricted", False)
+    ]
+
+    if not pending_urls:
+        print("[*] HTML staging checkpoint found; no pages need to be redownloaded.")
         return
 
-    if is_parallel:
-        print(f"\n--> Processing {len(files)} files in PARALLEL...")
-        with concurrent.futures.ProcessPoolExecutor(max_workers=MAX_CPU_WORKERS, initializer=init_worker) as pool:
-            
-            # Note: `files` is now a list of tuples: (filename, current_hash)
-            # We map the Future object to the entire tuple so we can access the hash later
-            future_to_file = {
-                pool.submit(
-                    cpu_bound_conversion_and_storage, 
-                    os.path.join(LOCAL_FOLDER, f[0]), # f[0] is the filename
-                    False, 
-                    None, 
-                    f"[{'HTML' if f[0].endswith('.html') else 'FILE'} {i+1}/{len(files)}]"
-                ): f 
-                for i, f in enumerate(files)
-            }
-            
-            for future in concurrent.futures.as_completed(future_to_file):
-                # Retrieve the tuple (filename, current_hash) from the dictionary
-                file_tuple = future_to_file[future]
-                filename = file_tuple[0]
-                current_hash = file_tuple[1]
-                
-                source_path = os.path.join(LOCAL_FOLDER, filename)
-                abs_path = os.path.abspath(source_path)
-                
-                try:
-                    success, source, info = future.result()
-                    if success:
-                        # Ensure we save using the absolute path and the dynamic content hash
-                        save_state(abs_path, current_hash)
-                except Exception as e:
-                    print(f"Error retrieving result for {filename}: {e}")
-                    
+    fetch_semaphore = asyncio.Semaphore(MAX_WEB_STAGE_CONCURRENCY)
+
+    async with AsyncWebCrawler(verbose=False) as crawler:
+        async with aiohttp.ClientSession() as session:
+
+            async def bounded_stage(url: str) -> tuple[str, dict]:
+                async with fetch_semaphore:
+                    try:
+                        result = await process_single_url(
+                            url=url,
+                            crawler=crawler,
+                            session=session,
+                            ledger=ledger,
+                        )
+                        return url, result
+                    except Exception as exc:
+                        return url, {
+                            "status": "failed",
+                            "url": url,
+                            "title": url,
+                            "error": str(exc),
+                        }
+
+            tasks = [
+                asyncio.create_task(bounded_stage(url))
+                for url in pending_urls
+            ]
+
+            for task in asyncio.as_completed(tasks):
+                url, result = await task
+                document = manifest["documents"][url]
+
+                if result.get("status") == "restricted":
+                    document.update({
+                        "title": result.get("title", url),
+                        "content_hash": result.get(
+                            "content_hash",
+                            result.get("hash"),
+                        ),
+                        "is_updated": result.get("is_updated", True),
+                        "restricted": True,
+                        "error": None,
+                    })
+                    document["stages"]["staged"] = "restricted"
+
+                    for later_stage in ("parsed", "chunked", "validated", "inserted"):
+                        document["stages"][later_stage] = "not_required"
+
+                    print(f"   [RESTRICTED] Authentication required: {url}")
+
+                elif result.get("status") == "failed":
+                    document["stages"]["staged"] = "failed"
+                    document["error"] = result.get("error", "Unknown web staging error")
+                    print(f"   [FETCH FAILED] {url}: {document['error']}")
+
+                else:
+                    document.update({
+                        "title": result.get("title", url),
+                        "content_hash": result.get("content_hash"),
+                        "is_updated": result.get("is_updated", True),
+                        "file_path": checkpoint_artifact(
+                            manifest,
+                            "raw_html",
+                            result["file_path"],
+                            url,
+                        ),
+                        "restricted": False,
+                        "error": None,
+                    })
+                    document["stages"]["staged"] = "success"
+
+                save_manifest(manifest)
+
+
+def record_parsing_result(manifest: dict, result: dict) -> None:
+    """Writes the parsing outcome of one policy into the run checkpoint."""
+    document = manifest["documents"][result["url"]]
+
+    if result["status"] == "success":
+        document.update({
+            "title": result.get("title", document["title"]),
+            "parsed_path": checkpoint_artifact(
+                manifest,
+                "parsed",
+                result["parsed_path"],
+                result["url"],
+            ),
+            "error": None,
+        })
+        document["stages"]["parsed"] = "success"
     else:
-        print(f"\n--> Processing {len(files)} files SEQUENTIALLY to save RAM...")
-        init_worker() # Initialize the worker in the main thread
-        
-        # `files` is a list of tuples: (filename, current_hash)
-        for i, item in enumerate(files):
-            filename = item[0]
-            current_hash = item[1]
-            
-            source_path = os.path.join(LOCAL_FOLDER, filename)
-            abs_path = os.path.abspath(source_path)
-            
-            try:
-                # Call the function directly, bypassing the pool entirely
-                success, source, info = cpu_bound_conversion_and_storage(
-                    source_path, False, None, f"[PDF {i+1}/{len(files)}]"
-                )
-                if success:
-                    # Ensure we save using the absolute path and the dynamic content hash
-                    save_state(abs_path, current_hash)
-            except Exception as e:
-                print(f"Error retrieving result for {filename}: {e}")
+        document["stages"]["parsed"] = "failed"
+        document["error"] = result.get("error", "Unknown parsing error")
 
-def run_local_ingestion():
-    print(f"\n---  LOCAL BATCH MODE (MULTIPROCESSING + SAFE PDF) ---")
-    if not os.path.exists(LOCAL_FOLDER):
-        return print(f"Error: {LOCAL_FOLDER} folder missing.")
-    
-    files = [f for f in os.listdir(LOCAL_FOLDER) if f.lower().endswith(('.pdf', '.html'))]
-    ledger = get_all_states()
-    pending_files = [] # Will hold tuples of (filename, current_hash)
-    
-    for f in files:
-        source_path = os.path.join(LOCAL_FOLDER, f)
-        abs_path = os.path.abspath(source_path)
-        
-        current_hash = get_file_hash(abs_path)
-        
-        if abs_path in ledger and ledger[abs_path] == current_hash:
-            doc_title = parse_document_title(source_path)
-            print(f"[SKIPPED] {doc_title} (Content unmodified)")
-        else:
-            pending_files.append((f, current_hash))
-            
-    total = len(pending_files)
-    
-    if total == 0:
-        return print("All local files are already fully ingested.")
+    save_manifest(manifest)
 
-    print(f"Skipped {len(files) - total} already ingested files. Processing {total} new files...")
 
-    pdf_files = [f for f in pending_files if f[0].lower().endswith('.pdf')]
-    html_files = [f for f in pending_files if f[0].lower().endswith('.html')]
+def record_chunking_result(manifest: dict, result: dict) -> None:
+    """Writes the semantic chunking outcome of one policy into the checkpoint."""
+    document = manifest["documents"][result["url"]]
 
-    _process_local_batch(html_files, is_parallel=True)
-    _process_local_batch(pdf_files, is_parallel=False)
+    if result["status"] == "success":
+        document.update({
+            "chunked_path": checkpoint_artifact(
+                manifest,
+                "chunked",
+                result["chunked_path"],
+                result["url"],
+            ),
+            "error": None,
+        })
+        document["stages"]["chunked"] = "success"
+    else:
+        document["stages"]["chunked"] = "failed"
+        document["error"] = result.get("error", "Unknown chunking error")
 
-def run_debug(target):
-    from docling_core.transforms.chunker import HierarchicalChunker
-    init_worker() 
-    process_target = target
-    temp_html_path = None
-    original_url = target # Define this here so it always exists
-    
-    if target.startswith("http"):
-        async def quick_fetch():
-            async with AsyncWebCrawler(verbose=False) as debug_crawler:
-                raw_html = await _fetch_html(target, debug_crawler)
-                if not raw_html: return None
-                soup = BeautifulSoup(raw_html, 'html.parser')
-                
-                # --- TABLE MUTATION LOGIC ---
-                for dl in soup.find_all('dl'):
-                    new_table = soup.new_tag('table')
-                    for dt in dl.find_all('dt'):
-                        dd = dt.find_next_sibling('dd')
-                        if dd:
-                            tr = soup.new_tag('tr')
-                            td_key = soup.new_tag('td')
-                            td_key.string = dt.get_text(strip=True)
-                            td_val = soup.new_tag('td')
-                            td_val.string = dd.get_text(strip=True)
-                            tr.append(td_key)
-                            tr.append(td_val)
-                            new_table.append(tr)
-                    dl.replace_with(new_table)
-                
-                # --- METADATA INJECTION LOGIC ---
-                metadata_url = next((urljoin(target, a['href']) for a in soup.find_all('a', href=True) 
-                                    if "status and details" in a.text.lower() or "status & details" in a.text.lower()), None)
-                if metadata_url:
-                    meta_html = await _fetch_html(metadata_url, debug_crawler)
-                    if meta_html:
-                        meta_soup = BeautifulSoup(meta_html, 'html.parser')
-                        meta_content = (meta_soup.find('table') or meta_soup.find('div', class_='document-content') or meta_soup.body)
-                        if meta_content:
-                            wrapper = soup.new_tag("div", id="injected-status-details", style="border-top: 5px solid red;")
-                            meta_header = soup.new_tag("h1")
-                            meta_header.string = "SECTION 99 - STATUS AND DETAILS (METADATA)"
-                            wrapper.append(meta_header)
-                            wrapper.append(meta_content)
-                            if soup.body:
-                                soup.body.insert(0, wrapper) 
-                return str(soup)
+    save_manifest(manifest)
 
-        print(f"\n[DEBUG] Fetching raw HTML for: {target}")
-        html_content = asyncio.run(quick_fetch())
-        
-        if html_content:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".html", mode="w", encoding="utf-8") as temp_file:
-                temp_file.write(html_content)
-                process_target = temp_file.name
-                temp_html_path = temp_file.name
-    
-    print(f"\n[DIAGNOSTIC MODE] Printing Docling chunk structure...")
-    global worker_converter
-    
+
+def record_validation_result(manifest: dict, result: dict) -> None:
+    """Writes the validated payload output of one policy into the checkpoint."""
+    document = manifest["documents"][result["url"]]
+
+    if result["status"] == "success":
+        document.update({
+            "validated_path": checkpoint_artifact(
+                manifest,
+                "validated",
+                result["validated_path"],
+                result["url"],
+            ),
+            "chunk_count": result["chunk_count"],
+            "chunking_methods": result["chunking_methods"],
+            "error": None,
+        })
+        document["stages"]["validated"] = "success"
+    else:
+        document["stages"]["validated"] = "failed"
+        document["error"] = result.get("error", "Unknown validation error")
+
+    save_manifest(manifest)
+
+
+def record_insertion_result(manifest: dict, result: dict) -> None:
+    """Writes the vector-insertion outcome of one policy into the checkpoint."""
+    document = manifest["documents"][result["url"]]
+
+    if result["status"] == "success":
+        document["stages"]["inserted"] = "success"
+        document["error"] = None
+    else:
+        document["stages"]["inserted"] = "failed"
+        document["error"] = result.get("error", "Unknown insertion error")
+
+    save_manifest(manifest)
+
+
+# -------------------------------------------------------------------------
+# Reporting
+# -------------------------------------------------------------------------
+
+def print_ingestion_dashboard(
+    manifest: dict,
+    failures: list[dict],
+) -> None:
+    """Prints a summary of one checkpointed ingestion or resume run."""
+    inserted_results = inserted_results_from_manifest(manifest)
+    restricted_results = restricted_results_from_manifest(manifest)
+    method_counts = Counter()
+    total_chunks = 0
+
+    for result in inserted_results:
+        total_chunks += result.get("chunk_count", 0)
+        method_counts.update(result.get("chunking_methods", {}))
+
+    print("\n" + "=" * 62)
+    print("LA TROBE POLICY INGESTION RUN SUMMARY")
+    print("=" * 62)
+    print(f"Checkpoint run ID:                 {manifest['run_id']}")
+    print(f"Candidate collection:              {manifest.get('candidate_collection')}")
+    print(f"Discovered/selected policy pages: {len(manifest['documents'])}")
+    print(f"Changed since published ledger:   {changed_count_from_manifest(manifest)}")
+    print(f"Accessible policies inserted:     {len(inserted_results)}")
+    print(f"Restricted/SSO pages excluded:    {len(restricted_results)}")
+    print(f"Failed or timed-out policies:     {len(failures)}")
+    print(f"Validated chunks inserted:        {total_chunks}")
+
+    print("\nChunking method counts:")
+    if method_counts:
+        for method, count in sorted(method_counts.items()):
+            print(f"  - {method}: {count}")
+    else:
+        print("  None")
+
+    if restricted_results:
+        print("\nRestricted/SSO pages excluded from public-source indexing:")
+        for item in restricted_results:
+            print(f"  - {item['url']}")
+
+    if failures:
+        print("\nFailed or timed-out documents:")
+        for item in failures:
+            print(
+                f"  - {item.get('title', item.get('url', 'Unknown document'))} "
+                f"[{item.get('stage', 'unknown stage')}]: "
+                f"{item.get('error', 'Unknown error')}"
+            )
+
+    print(
+        "\nLive alias promoted:"
+        + (" Yes" if manifest.get("alias_promoted") else " No")
+    )
+    print(
+        "CDC ledger updated:"
+        + (" Yes" if manifest.get("ledger_updated") else " No")
+    )
+    print("=" * 62 + "\n")
+
+
+def stop_incomplete_run(
+    manifest: dict,
+    failures: list[dict],
+    stage_label: str,
+) -> None:
+    """Records an incomplete run and explains that it can be resumed later."""
+    manifest["status"] = f"failed_at_{stage_label.replace(' ', '_').lower()}"
+    save_manifest(manifest)
+
+    print(
+        f"[!] {stage_label} did not complete for every accessible policy. "
+        "The candidate was not promoted and the CDC ledger was not updated."
+    )
+    print(
+        "[*] Completed stage outputs have been checkpointed. "
+        "Choose 'Resume latest incomplete candidate build' after fixing the issue."
+    )
+
+    print_ingestion_dashboard(
+        manifest,
+        failures,
+    )
+
+
+# -------------------------------------------------------------------------
+# Checkpointed staged candidate build and publication
+# -------------------------------------------------------------------------
+
+async def execute_manifest(
+    manifest: dict,
+    ledger: dict[str, str],
+    is_resume: bool = False,
+) -> None:
+    """
+    Executes pending stages in a new or resumed manifest.
+
+    If vector insertion had already begun, a resumed run continues inserting
+    into the candidate collection recorded in this manifest.
+    """
+    repair_missing_checkpoint_files(manifest)
+
+    if manifest.get("alias_promoted") and not manifest.get("ledger_updated"):
+        print(
+            "[*] This candidate is already live but its CDC update is pending. "
+            "Saving the ledger without rebuilding documents."
+        )
+        save_states([
+            (result["url"], result["content_hash"])
+            for result in inserted_results_from_manifest(manifest)
+            if result.get("content_hash")
+        ] + [
+            (result["url"], result["content_hash"])
+            for result in restricted_results_from_manifest(manifest)
+            if result.get("content_hash")
+        ])
+        manifest["ledger_updated"] = True
+        manifest["promoted"] = True
+        manifest["status"] = "published"
+        save_manifest(manifest)
+        print_ingestion_dashboard(manifest, [])
+        return
+
+    if is_resume:
+        print(f"[*] Resuming checkpointed run: {manifest['run_id']}")
+        if manifest.get("candidate_collection"):
+            print(
+                f"[*] Reusing unpublished candidate collection: "
+                f"{manifest['candidate_collection']}"
+            )
+
+    print(
+        f"\n[STAGE 2: HTML STAGING] Processing pending HTML pages with at most "
+        f"{MAX_WEB_STAGE_CONCURRENCY} concurrent requests..."
+    )
+    await stage_pending_html(
+        manifest,
+        ledger,
+    )
+
+    staging_failures = stage_failures(manifest, "staged")
+    if staging_failures:
+        stop_incomplete_run(
+            manifest,
+            staging_failures,
+            "HTML staging",
+        )
+        return
+
+    documents = accessible_documents(manifest)
+    if not documents:
+        manifest["status"] = "no_accessible_documents"
+        save_manifest(manifest)
+        print("[!] No accessible policy documents were available for processing.")
+        print_ingestion_dashboard(manifest, [])
+        return
+
+    safe_workers = calculate_safe_workers()
+    chunking_workers = max(1, min(safe_workers, MAX_CHUNKING_WORKERS))
+    validation_workers = max(1, min(safe_workers, MAX_VALIDATION_WORKERS))
+    insertion_workers = max(1, min(safe_workers, MAX_INSERTION_WORKERS))
+
+    print(
+        "[*] Controlled concurrency plan: "
+        f"parsing={safe_workers}, "
+        f"chunking={chunking_workers}, "
+        f"validation={validation_workers}, "
+        f"vector insertion={insertion_workers} worker(s)."
+    )
+
+    pending_parsing = [
+        {
+            "url": document["url"],
+            "title": document["title"],
+            "file_path": document["file_path"],
+            "content_hash": document.get("content_hash"),
+            "is_updated": document.get("is_updated", True),
+        }
+        for document in documents
+        if document["stages"].get("parsed") != "success"
+    ]
+
+    if pending_parsing:
+        print(
+            f"\n[STAGE 3: PARSING] Parsing {len(pending_parsing)} pending "
+            f"HTML file(s) with {safe_workers} worker process(es)..."
+        )
+        _, failures = run_stage_with_timeout(
+            pending_parsing,
+            parse_staged_policy,
+            "parsed",
+            safe_workers,
+            lambda result: record_parsing_result(manifest, result),
+        )
+
+        if failures or not stage_complete_for_accessible_documents(manifest, "parsed"):
+            stop_incomplete_run(
+                manifest,
+                failures or stage_failures(manifest, "parsed"),
+                "Parsing",
+            )
+            return
+    else:
+        print("[*] Parsing checkpoint found; no documents need reparsing.")
+
+    pending_chunking = [
+        {
+            "url": document["url"],
+            "title": document["title"],
+            "parsed_path": document["parsed_path"],
+            "content_hash": document.get("content_hash"),
+            "is_updated": document.get("is_updated", True),
+        }
+        for document in documents
+        if document["stages"].get("chunked") != "success"
+    ]
+
+    if pending_chunking:
+        print(
+            f"\n[STAGE 4: SEMANTIC CHUNKING] Chunking {len(pending_chunking)} "
+            f"pending document(s) with {chunking_workers} worker process(es)..."
+        )
+        _, failures = run_stage_with_timeout(
+            pending_chunking,
+            chunk_parsed_policy,
+            "chunked",
+            chunking_workers,
+            lambda result: record_chunking_result(manifest, result),
+        )
+
+        if failures or not stage_complete_for_accessible_documents(manifest, "chunked"):
+            stop_incomplete_run(
+                manifest,
+                failures or stage_failures(manifest, "chunked"),
+                "Semantic chunking",
+            )
+            return
+    else:
+        print("[*] Chunking checkpoint found; no documents need rechunking.")
+
+    pending_validation = [
+        {
+            "url": document["url"],
+            "title": document["title"],
+            "chunked_path": document["chunked_path"],
+            "content_hash": document.get("content_hash"),
+            "is_updated": document.get("is_updated", True),
+        }
+        for document in documents
+        if document["stages"].get("validated") != "success"
+    ]
+
+    if pending_validation:
+        print(
+            f"\n[STAGE 5: PAYLOAD VALIDATION] Validating {len(pending_validation)} "
+            f"pending document(s) with {validation_workers} worker process(es)..."
+        )
+        _, failures = run_stage_with_timeout(
+            pending_validation,
+            validate_chunked_policy,
+            "validated",
+            validation_workers,
+            lambda result: record_validation_result(manifest, result),
+        )
+
+        if failures or not stage_complete_for_accessible_documents(manifest, "validated"):
+            stop_incomplete_run(
+                manifest,
+                failures or stage_failures(manifest, "validated"),
+                "Payload validation",
+            )
+            return
+    else:
+        print("[*] Validation checkpoint found; no documents need revalidation.")
+
+    if not manifest.get("candidate_collection"):
+        print("\n[STAGE 6: CANDIDATE COLLECTION] Creating a new Qdrant candidate...")
+        manifest["candidate_collection"] = create_candidate_collection()
+        manifest["status"] = "candidate_created"
+        save_manifest(manifest)
+    else:
+        print(
+            f"\n[STAGE 6: CANDIDATE COLLECTION] Reusing candidate: "
+            f"{manifest['candidate_collection']}"
+        )
+
+    pending_insertions = [
+        {
+            "validated_result": {
+                "url": document["url"],
+                "title": document["title"],
+                "validated_path": document["validated_path"],
+                "content_hash": document.get("content_hash"),
+                "chunk_count": document.get("chunk_count", 0),
+                "chunking_methods": document.get("chunking_methods", {}),
+            },
+            "candidate_collection": manifest["candidate_collection"],
+        }
+        for document in documents
+        if document["stages"].get("inserted") != "success"
+    ]
+
+    if pending_insertions:
+        print(
+            f"\n[STAGE 7: VECTOR INSERTION] Inserting {len(pending_insertions)} "
+            f"pending policy document(s) into '{manifest['candidate_collection']}' "
+            f"with {insertion_workers} worker process(es)..."
+        )
+        _, failures = run_stage_with_timeout(
+            pending_insertions,
+            insert_validated_policy,
+            "inserted",
+            insertion_workers,
+            lambda result: record_insertion_result(manifest, result),
+        )
+
+        if failures or not stage_complete_for_accessible_documents(manifest, "inserted"):
+            stop_incomplete_run(
+                manifest,
+                failures or stage_failures(manifest, "inserted"),
+                "Vector insertion",
+            )
+            return
+    else:
+        print("[*] Insertion checkpoint found; all policy vectors are already stored.")
+
+    print(
+        "\n[STAGE 8: PROMOTION] Switching the configured alias to "
+        f"candidate '{manifest['candidate_collection']}'..."
+    )
+
     try:
-        # 1. Conversion
-        result = worker_converter.convert(process_target)
-        
-        # 2. Chunking (Use production logic)
-        chunker = HierarchicalChunker(
-    chunker_config={
-        "max_tokens": 1500  # Enforce a strict split for chunks that get too big
-    }
-)
-        raw_chunks = list(chunker.chunk(result.document))
-        chunks = _consolidate_semantic_chunks(raw_chunks)
-        
-        # 3. Metadata Factory Logic (Run ONCE outside the loop)
-        payloads = extract_metadata_and_chunk(result.document, original_url)
-        
-        if payloads:
-            print(f"\n[DIAGNOSTIC] METADATA FACTORY DECISION:")
-            print(f"Final Document Title: '{payloads[0].get('document_title')}'")
-            print(f"Source URL:           '{payloads[0].get('source_url')}'")
-            print(f"Total Chunks Created: {len(payloads)}")
-        
-        # 4. Print Tree
-        print(f"\n--- DOCLING CONSOLIDATED PARSE TREE ({len(chunks)} Chunks) ---")
-        for i, chunk in enumerate(chunks): 
-            headers = getattr(chunk.meta, 'headings', [])
-            header_str = " > ".join(headers) if headers else "TOP LEVEL"
-            print(f"\nCHUNK [{i}]")
-            print(f"Hierarchy:  {header_str}")
-            print(f"Full Content:\n{chunk.text.strip()}")
-            print("-" * 60)
-            
-    finally:
-        if temp_html_path and os.path.exists(temp_html_path):
-            os.remove(temp_html_path)
+        promote_candidate_collection(
+            manifest["candidate_collection"]
+        )
+    except Exception as exc:
+        manifest["status"] = "promotion_failed"
+        save_manifest(manifest)
+
+        stop_incomplete_run(
+            manifest,
+            [{
+                "status": "failed",
+                "stage": "alias promotion",
+                "url": manifest["candidate_collection"],
+                "title": manifest["candidate_collection"],
+                "error": str(exc),
+            }],
+            "Alias promotion",
+        )
+        return
+
+    manifest["alias_promoted"] = True
+    manifest["status"] = "alias_promoted_ledger_pending"
+    save_manifest(manifest)
+
+    print("\n[STAGE 9: CDC LEDGER] Saving hashes for the published build...")
+
+    ledger_updates = [
+        (result["url"], result["content_hash"])
+        for result in inserted_results_from_manifest(manifest)
+        if result.get("content_hash")
+    ] + [
+        (result["url"], result["content_hash"])
+        for result in restricted_results_from_manifest(manifest)
+        if result.get("content_hash")
+    ]
+
+    save_states(ledger_updates)
+
+    manifest["ledger_updated"] = True
+    manifest["promoted"] = True
+    manifest["status"] = "published"
+    save_manifest(manifest)
+
+    print_ingestion_dashboard(
+        manifest,
+        [],
+    )
+
+
+async def start_new_pipeline(
+    test_limit: int | None = None,
+) -> None:
+    """Discovers source pages, creates a new manifest and executes the build."""
+    print("\n=====================================================")
+    print("   LA TROBE POLICY DB - CHECKPOINTED PARALLEL PIPELINE")
+    print("=====================================================")
+
+    print("\n[STAGE 1: DISCOVERY] Locating policy pages...")
+    all_links = await scout_policy_links(WEB_HUB_URL)
+
+    if test_limit is not None:
+        selected_links = all_links[:test_limit]
+        mode = f"publication_test_{test_limit}_policies"
+        print(
+            f"[*] Publication test mode: processing {len(selected_links)} "
+            "selected policy pages through every stage."
+        )
+        print(
+            "[!] This is a partial build. After promotion, the configured "
+            "alias will represent only this selected sample."
+        )
+    else:
+        selected_links = all_links
+        mode = "full_rebuild"
+        print(
+            f"[*] Full rebuild mode: processing all {len(selected_links)} policies."
+        )
+
+    if not selected_links:
+        print("[!] No policy links were discovered.")
+        return
+
+    manifest = create_manifest(
+        selected_links,
+        mode,
+    )
+    print(f"[*] Created checkpoint manifest: {manifest_path(manifest['run_id'])}")
+
+    await execute_manifest(
+        manifest,
+        get_all_states(),
+    )
+
+
+async def resume_latest_pipeline() -> None:
+    """Resumes the most recent candidate build that has not been fully published."""
+    manifest = find_latest_incomplete_manifest()
+
+    if manifest is None:
+        print("[!] No incomplete checkpointed ingestion run was found.")
+        return
+
+    print("\n=====================================================")
+    print("   RESUMING CHECKPOINTED INGESTION BUILD")
+    print("=====================================================")
+    print(f"[*] Manifest: {manifest_path(manifest['run_id'])}")
+    print(f"[*] Current status: {manifest.get('status', 'unknown')}")
+
+    await execute_manifest(
+        manifest,
+        get_all_states(),
+        is_resume=True,
+    )
+
+
+async def run_single_policy_debug(target_url: str) -> None:
+    """
+    Runs one policy through staging, parsing, chunking and validation.
+
+    No Qdrant vectors are inserted and the configured alias is not changed.
+    """
+    ledger = get_all_states()
+
+    async with AsyncWebCrawler(verbose=False) as crawler:
+        async with aiohttp.ClientSession() as session:
+            result = await process_single_url(
+                url=target_url,
+                crawler=crawler,
+                session=session,
+                ledger=ledger,
+            )
+
+    if result.get("status") == "restricted":
+        print(f"[DEBUG] Cannot process restricted policy page: {target_url}")
+        return
+
+    parsed_result = parse_staged_policy(result)
+    if parsed_result["status"] != "success":
+        raise RuntimeError(parsed_result["error"])
+
+    chunked_result = chunk_parsed_policy(parsed_result)
+    if chunked_result["status"] != "success":
+        raise RuntimeError(chunked_result["error"])
+
+    validated_result = validate_chunked_policy(chunked_result)
+    if validated_result["status"] != "success":
+        raise RuntimeError(validated_result["error"])
+
+    print("\n" + "=" * 62)
+    print("SINGLE POLICY DEBUG RESULT - NO DATABASE INSERTION")
+    print("=" * 62)
+    print(f"Title: {validated_result.get('title', target_url)}")
+    print(f"Source: {target_url}")
+    print(f"Validated output: {Path(validated_result['validated_path'])}")
+    print(f"Validated chunks: {validated_result['chunk_count']}")
+    print("Chunking methods:")
+
+    for method, count in sorted(
+        validated_result["chunking_methods"].items()
+    ):
+        print(f"  - {method}: {count}")
+
+    print("=" * 62 + "\n")
+
+
 if __name__ == "__main__":
-    print("========================================")
-    print("La Trobe PolicyDB - Core Ingestion")
-    print("========================================")
-    print("1. Local Disk Batch")
-    print("2. Live Web Crawl (Full Site Scrape)")
-    print("3. SINGLE TARGET DEBUG")
-    
-    choice = input("\nEnter 1, 2, or 3: ").strip()
-    
-    if choice == '1': run_local_ingestion()
-    elif choice == '2': run_web_ingestion()
-    elif choice == '3':
-        target = input("\nEnter URL or path: ").strip()
-        run_debug(target)
-    else: print("Invalid choice.")
+    print("Select ingestion mode:")
+    print("1. Full public HTML policy-library rebuild and alias promotion")
+    print(
+        f"2. {PIPELINE_TEST_DOCUMENT_LIMIT}-policy full publication test "
+        "(parallel processing, alias promotion and CDC ledger update)"
+    )
+    print("3. Resume latest incomplete candidate build")
+    print("4. Single policy debug run without database insertion")
+
+    choice = input("Enter 1, 2, 3 or 4: ").strip()
+
+    if choice == "1":
+        asyncio.run(
+            start_new_pipeline()
+        )
+
+    elif choice == "2":
+        print(
+            "\nWARNING: This test deliberately promotes a partial candidate "
+            "collection. After promotion, the configured alias will represent "
+            f"only the selected {PIPELINE_TEST_DOCUMENT_LIMIT}-policy sample."
+        )
+
+        confirmation = input(
+            "Type PROMOTE TEST to run insertion, alias promotion "
+            "and CDC update: "
+        ).strip()
+
+        if confirmation != "PROMOTE TEST":
+            raise SystemExit("Publication-path test cancelled.")
+
+        asyncio.run(
+            start_new_pipeline(
+                test_limit=PIPELINE_TEST_DOCUMENT_LIMIT,
+            )
+        )
+
+    elif choice == "3":
+        asyncio.run(
+            resume_latest_pipeline()
+        )
+
+    elif choice == "4":
+        target_url = input("Enter a public policy URL: ").strip()
+        asyncio.run(
+            run_single_policy_debug(target_url)
+        )
+
+    else:
+        raise SystemExit("Invalid selection. Enter 1, 2, 3 or 4.")
