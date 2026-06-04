@@ -30,3 +30,38 @@ chroma_db_vlm/
 # New ignores 
 node_modules/
 .next/
+
+# --- Qdrant Vector Database Storage ---
+qdrant_storage/
+
+# --- Ingestion & Local Data ---
+ingestion_ledger.json
+policy_pdfs/
+
+# --- Temporary Parsing Outputs & Scratchpads ---
+*.md
+!RETRIEVAL_DOCS.md
+!README.md
+!FRONTEND_README.md
+!FRONTEND_COMPONENTS.md
+test_output.md
+check_tables.py* . d b 
+*.db
+test_results.json
+ 
+ * . s n a p s h o t 
+ 
+ # --- Vaidehi: generated retrieval / ingestion artefacts ---
+
+# Generated staged HTML, parsed/chunked payloads and checkpointed ingestion runs
+data/
+
+# Old local environment export used during debugging
+requirements_from_old_venv.txt
+
+# Temporary single-document/debug audit output
+retrieval/ingestion_audit_document_*.json
+
+# Temporary local development scripts, if not required for final submission
+test_db_insert.py
+test_stage_*.py
