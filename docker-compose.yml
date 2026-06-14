@@ -1,0 +1,27 @@
+services:
+  qdrant:
+    container_name: qdrant_database
+    # Use a fixed Qdrant version so the database setup behaves consistently.
+    # Version 1.11.0 supports the on-disk payload indexes used in this project.
+    image: qdrant/qdrant:v1.17.1
+
+    ports:
+      # REST API port used by the Python code and the Qdrant dashboard.
+      # Only expose it on the local machine during development.
+      - "127.0.0.1:6333:6333"
+
+      # gRPC port kept available if the retrieval pipeline uses gRPC later.
+      # Only expose it on the local machine during development.
+      - "127.0.0.1:6334:6334"
+
+    volumes:
+      # Store Qdrant data in a persistent Docker-managed volume.
+      # This keeps the database storage portable across development environments.
+      - qdrant_storage:/qdrant/storage
+
+    # Restart the database service automatically unless it is manually stopped.
+    restart: unless-stopped
+
+volumes:
+  qdrant_storage:
+

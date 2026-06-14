@@ -15,15 +15,20 @@ ARCHITECTURE FIX (Sprint 4 integration):
 """
 
 # Version tracking
-PROMPT_VERSION = "v3.1"
+PROMPT_VERSION = "v3.2"
 
-# Sprint 3 hardened prompt (updated for integrated architecture) 
+# Sprint 3 hardened prompt (updated for integrated architecture)
 # Changes from v3.0:
-#  • Removed citation-writing instruction — backend handles citations from metadata
-#  • Added exception-chunk awareness (is_exception flag)
-#  • Context block now uses document_title/source_url from Vaidehi's retrieval format
+#  Removed citation-writing instruction — backend handles citations from metadata
+#  Added exception-chunk awareness (is_exception flag)
+#  Context block now uses document_title/source_url from Vaidehi's retrieval format
+# Changes from v3.1:
+#  Added role-based audience instruction (student vs staff)
+#  Stripped chunk metadata from headers to prevent LLM leakage
+#  Added explicit rules against exposing internal reasoning or chunk references
+#  Tightened fallback rule to prevent preamble/reasoning before fallback message
 
-#role based responses 
+#Role-based response styling
 
 ROLE_INSTRUCTIONS = {
     "student": (
@@ -46,9 +51,16 @@ ROLE_INSTRUCTIONS = {
 DEFAULT_ROLE = "student"
 
 
+# RAG Prompt Template 
+
 RAG_TEMPLATE = """
 You are the La Trobe University Policy Assistant.
 Your ONLY role is to answer questions using the exact policy text provided below.
+
+══════════════════════════════════════════════════════════════════
+AUDIENCE
+══════════════════════════════════════════════════════════════════
+{role_instruction}
 
 ══════════════════════════════════════════════════════════════════
 STRICT GROUNDING RULES — READ BEFORE ANSWERING
@@ -73,13 +85,22 @@ FORBIDDEN BEHAVIOURS (will be detected and flagged):
   appears in the source text
 ✗ Speculating about what a policy "might" mean
 ✗ Answering a question that is not addressed in the context at all
-✗ Writing source filenames, URLs, page numbers, chunk IDs, or document titles — the system handles citations automatically. NEVER say "According to [CHUNK...]" or reference any metadata labels from the context block.
+✗ Writing source filenames, URLs, page numbers, chunk IDs, or document
+  titles — the system handles citations automatically. NEVER say
+  "According to [CHUNK...]" or reference any metadata labels from the
+  context block.
+✗ Explaining your reasoning process or referencing these instructions
+  (e.g. NEVER say "According to the Fallback Rule" or "Since the context
+  does not contain..." — just give the answer or the fallback directly)
+✗ Repeating the same information twice in one response
 
 ══════════════════════════════════════════════════════════════════
 FALLBACK RULE (when context does not contain the answer)
 ══════════════════════════════════════════════════════════════════
 If the CONTEXT does not contain information sufficient to answer
-the question, respond with EXACTLY this message (no additions):
+the question, respond with EXACTLY this message and NOTHING ELSE.
+Do NOT explain why you are using this response. Do NOT add any
+preamble, reasoning, or commentary before or after it:
 
   "This question is not covered in the provided policy documents.
    For authoritative guidance, please contact:
@@ -103,7 +124,7 @@ ANSWER
 """
 
 
-# ── Context Formatter
+# Context Formatter
 
 def format_chunks_for_prompt(chunks: list[dict]) -> str:
     """
@@ -115,6 +136,10 @@ def format_chunks_for_prompt(chunks: list[dict]) -> str:
         chunk["source_url"]      — URL of the policy page
         chunk["chunk_id"]        — unique identifier
         chunk["is_exception"]    — True if this is an exception/override chunk
+
+    NOTE: Headers are kept minimal (no URLs, no IDs) to prevent the LLM
+    from copying metadata into its answer. The backend already has full
+    metadata in the chunk dicts for citation purposes.
     """
     if not chunks:
         return ""
@@ -122,8 +147,6 @@ def format_chunks_for_prompt(chunks: list[dict]) -> str:
     formatted = []
     for i, chunk in enumerate(chunks):
         title     = chunk.get("document_title", "Unknown Document")
-        url       = chunk.get("source_url", "N/A")
-        chunk_id  = chunk.get("chunk_id", f"chunk_{i+1}")
         is_exc    = chunk.get("is_exception", False)
         content   = chunk.get("content", "")
 
@@ -134,7 +157,7 @@ def format_chunks_for_prompt(chunks: list[dict]) -> str:
     return "\n\n---\n\n".join(formatted)
 
 
-# Kept for backward compatibility with test_generation.py
+# ── Kept for backward compatibility with test_generation.py
 
 def format_docs_with_metadata(docs: list) -> str:
     """
@@ -157,7 +180,7 @@ def format_docs_with_metadata(docs: list) -> str:
     return "\n\n---\n\n".join(formatted)
 
 
-# Post-generation Hallucination Validator 
+#Post-generation Hallucination Validator
 
 FALLBACK_MARKERS = [
     "not covered in the provided policy",
@@ -227,7 +250,7 @@ def validate_response(answer: str, chunks: list[dict]) -> dict:
     }
 
 
-#  Adversarial Query Detector
+#  Adversarial Query Detector 
 
 ADVERSARIAL_PATTERNS = [
     "i heard that la trobe",
@@ -250,7 +273,7 @@ def is_adversarial(query: str) -> bool:
     return any(pattern in q for pattern in ADVERSARIAL_PATTERNS)
 
 
-# Main guardrail wrapper used by generate_answer
+# ── Main guardrail wrapper used by generate_answer
 
 def build_guardrailed_response(query: str, chunks: list[dict], raw_answer: str) -> dict:
     """

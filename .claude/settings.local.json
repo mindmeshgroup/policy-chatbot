@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C policy-chatbot pull --rebase origin develop)",
+      "Bash(git -C policy-chatbot push origin develop)"
+    ]
+  }
+}

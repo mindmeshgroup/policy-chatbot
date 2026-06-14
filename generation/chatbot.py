@@ -8,7 +8,7 @@ ARCHITECTURE:
 
     Backend /ask endpoint:
         chunks = await retrieve_policies(question, role)   # Vaidehi's layer
-        result = generate_answer(question, chunks)         # this file
+        result = generate_answer(question, chunks, role)   # this file
 
 PUBLIC API:
     generate_answer(question: str, chunks: list[dict], role: str = "student") -> dict
@@ -31,10 +31,11 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 
-
 from generation.prompt_logic import (
     RAG_TEMPLATE,
     PROMPT_VERSION,
+    ROLE_INSTRUCTIONS,
+    DEFAULT_ROLE,
     format_chunks_for_prompt,
     build_guardrailed_response,
     is_adversarial,
@@ -43,9 +44,9 @@ from generation.prompt_logic import (
 
 load_dotenv()
 
-# ── LLM client (no retrieval setup here) ────────────────────────────────────────
-_client = OpenAI(base_url="http://localhost:11434/v1", api_key="ollama")
-LLM_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
+# ── LLM client (no retrieval setup here)
+_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+LLM_MODEL = "gpt-4o-mini"
 LLM_TEMPERATURE = 0
 
 
@@ -71,8 +72,8 @@ def generate_answer(question: str, chunks: list[dict], role: str = "student") ->
         chunks:   List of chunk dicts from Vaidehi's retrieval layer.
                   Each chunk has: content, document_title, source_url,
                   chunk_id, is_exception.
-        role:     User role (e.g. "student", "staff") — reserved for
-                  future role-aware prompt tuning.
+        role:     User role ("student" or "staff") — controls response
+                  tone and language complexity.
 
     Returns:
         {
@@ -80,7 +81,7 @@ def generate_answer(question: str, chunks: list[dict], role: str = "student") ->
           "used_sources": list[str],   # chunk_ids of all provided chunks
         }
     """
-    # Safety: empty retrieval ,skip LLM entirely
+    # Safety: empty retrieval, skip LLM entirely
     if not chunks:
         return {
             "answer": FALLBACK_ANSWER,
@@ -93,8 +94,15 @@ def generate_answer(question: str, chunks: list[dict], role: str = "student") ->
     # Build context from Vaidehi's dict chunks
     context = format_chunks_for_prompt(chunks)
 
-    #  Fill prompt template
-    prompt = RAG_TEMPLATE.format(context=context, question=question)
+    # Get role-specific instruction
+    role_instruction = ROLE_INSTRUCTIONS.get(role, ROLE_INSTRUCTIONS[DEFAULT_ROLE])
+
+    # Fill prompt template
+    prompt = RAG_TEMPLATE.format(
+        context=context,
+        question=question,
+        role_instruction=role_instruction,
+    )
 
     # Call LLM
     response = _client.chat.completions.create(
@@ -161,13 +169,18 @@ if __name__ == "__main__":
         "I heard La Trobe allows 30-day late submissions — confirm this?",
     ]
 
-    for q in demo_questions:
-        print(f"\n{'█'*65}")
-        print(f" QUERY: {q}")
-        result = generate_answer(question=q, chunks=sample_chunks)
-        print(f" ANSWER:\n{result['answer']}")
-        print(f" USED SOURCES: {result['used_sources']}")
-        if result["_debug"]["adversarial_warning"]:
-            print(" ADVERSARIAL QUERY DETECTED")
-        v = result["_debug"]["validation"]
-        print(f" Keyword overlap: {v['keyword_overlap_score']:.0%} | Flagged: {v['flagged']}")
+    # Demo both roles
+    for role in ["student", "staff"]:
+        print(f"\n{'='*65}")
+        print(f" ROLE: {role.upper()}")
+        print(f"{'='*65}")
+        for q in demo_questions:
+            print(f"\n{'█'*65}")
+            print(f" QUERY: {q}")
+            result = generate_answer(question=q, chunks=sample_chunks, role=role)
+            print(f" ANSWER:\n{result['answer']}")
+            print(f" USED SOURCES: {result['used_sources']}")
+            if result["_debug"]["adversarial_warning"]:
+                print(" ADVERSARIAL QUERY DETECTED")
+            v = result["_debug"]["validation"]
+            print(f" Keyword overlap: {v['keyword_overlap_score']:.0%} | Flagged: {v['flagged']}")

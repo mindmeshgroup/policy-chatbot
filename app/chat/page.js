@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import ReactMarkdown from 'react-markdown';
 
 const chatHistoryItems = [
   { id: 1, text: 'Attendance : Average Rate of attendi..' },
@@ -360,7 +361,21 @@ function ChatContent() {
                     aria-label={msg.sender === 'bot' ? 'Chatbot response' : 'Your message'}
                     style={{ maxWidth: '55%', minHeight: '48px', padding: '12px 16px', backgroundColor: t.bubbleBg, borderRadius: '8px', border: `2px solid ${t.bubbleBorder}`, fontSize: '13px', fontWeight: '500', color: t.bubbleText, lineHeight: '1.5', fontFamily: "'DM Sans', sans-serif", transition: 'background-color 0.2s, border-color 0.2s' }}
                   >
-                    {msg.text}
+                    {msg.sender === 'bot' ? (
+                      <ReactMarkdown
+                        components={{
+                          p: ({ children }) => <p style={{ margin: '0 0 8px 0' }}>{children}</p>,
+                          ol: ({ children }) => <ol style={{ paddingLeft: '20px', margin: '6px 0' }}>{children}</ol>,
+                          ul: ({ children }) => <ul style={{ paddingLeft: '20px', margin: '6px 0' }}>{children}</ul>,
+                          li: ({ children }) => <li style={{ marginBottom: '4px' }}>{children}</li>,
+                          strong: ({ children }) => <strong style={{ fontWeight: '700' }}>{children}</strong>,
+                        }}
+                      >
+                        {msg.text}
+                      </ReactMarkdown>
+                    ) : (
+                      msg.text
+                    )}
                   </div>
                   {msg.sender === 'user' && (
                     <div

@@ -1,0 +1,5338 @@
+[
+  {
+    "document_title": "Academic Dress Policy",
+    "chunk_count": 22,
+    "canonical_document_ids": [
+      "85ea1b9b7f39"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=208"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 13,
+    "chunking_method_counts": {
+      "Atomic-Pass": 9,
+      "Lossless-Table-Split": 2,
+      "Table-Long-Row-Character-Split": 11
+    }
+  },
+  {
+    "document_title": "Academic Progression Review Policy",
+    "chunk_count": 23,
+    "canonical_document_ids": [
+      "810c0d723de5"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=220"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR"
+    ],
+    "exception_chunk_count": 9,
+    "table_chunk_count": 7,
+    "chunking_method_counts": {
+      "Atomic-Pass": 12,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1,
+      "Table-Long-Row-Character-Split": 5
+    }
+  },
+  {
+    "document_title": "Academic Promotions Policy",
+    "chunk_count": 44,
+    "canonical_document_ids": [
+      "122a54f8bc65"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=76"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic"
+    ],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 3,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14,
+      "Hard-Cut-Limit": 9,
+      "Hierarchical-Semantic-Optimized": 11,
+      "Lossless-Table-Split": 3,
+      "Semantic-Variance-Bypass": 7
+    }
+  },
+  {
+    "document_title": "Academic Staff Qualifications Policy",
+    "chunk_count": 10,
+    "canonical_document_ids": [
+      "cf8af900937d"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=420"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "HDR",
+      "Postgrad"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 6,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Academic Staff Qualifications Procedure - Scholarship",
+    "chunk_count": 24,
+    "canonical_document_ids": [
+      "ac08d2da5ab8"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=422"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "Casual"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 18,
+      "Hard-Cut-Limit": 1,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Academic Staff Qualifications Procedure - Teaching",
+    "chunk_count": 31,
+    "canonical_document_ids": [
+      "8d91a3c4147a"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=421"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 11,
+    "chunking_method_counts": {
+      "Atomic-Pass": 18,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 11,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Admissions Policy",
+    "chunk_count": 13,
+    "canonical_document_ids": [
+      "362c708ca9a6"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=169"
+    ],
+    "target_cohorts": [
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 6,
+      "Hard-Cut-Limit": 3,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Admissions Procedure",
+    "chunk_count": 34,
+    "canonical_document_ids": [
+      "e3624324e4bf"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=340"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 16,
+      "Hard-Cut-Limit": 8,
+      "Hierarchical-Semantic-Optimized": 3,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 5
+    }
+  },
+  {
+    "document_title": "Admissions Procedure - Credit",
+    "chunk_count": 17,
+    "canonical_document_ids": [
+      "ddf6dae978a8"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=388"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Admissions Schedule",
+    "chunk_count": 4,
+    "canonical_document_ids": [
+      "5a5d80a3d95d"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=389"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "International"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Admissions Standard - Credit",
+    "chunk_count": 18,
+    "canonical_document_ids": [
+      "5c1a41ab9de3"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=390"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Postgrad"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Appeals Policy",
+    "chunk_count": 23,
+    "canonical_document_ids": [
+      "707ddb6bdceb"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=316"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 5,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Hard-Cut-Limit": 4,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 4
+    }
+  },
+  {
+    "document_title": "Appointment of La Trobe University Distinguished Professors Policy",
+    "chunk_count": 15,
+    "canonical_document_ids": [
+      "dc780cce610b"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=81"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 11,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Assessment Policy",
+    "chunk_count": 11,
+    "canonical_document_ids": [
+      "0a5e53446d83"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=216"
+    ],
+    "target_cohorts": [
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 5,
+      "Hard-Cut-Limit": 1,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Assessment Procedure - Adjustments (including Special Consideration)",
+    "chunk_count": 50,
+    "canonical_document_ids": [
+      "ba8a8716b178"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=380"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 28,
+      "Hard-Cut-Limit": 9,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 9
+    }
+  },
+  {
+    "document_title": "Assessment Procedure - Examinations",
+    "chunk_count": 59,
+    "canonical_document_ids": [
+      "36b0eabf4519"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=338"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 3,
+    "chunking_method_counts": {
+      "Atomic-Pass": 44,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 6,
+      "Lossless-Table-Split": 3,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Assessment Procedure - Grades and Administrative Codes",
+    "chunk_count": 40,
+    "canonical_document_ids": [
+      "951740317b22"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=341"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 28,
+    "chunking_method_counts": {
+      "Atomic-Pass": 12,
+      "Lossless-Table-Split": 28
+    }
+  },
+  {
+    "document_title": "Assessment Procedure - Validation and Moderation",
+    "chunk_count": 21,
+    "canonical_document_ids": [
+      "857fbccbdb0b"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=140"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14,
+      "Hard-Cut-Limit": 1,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Assessment Standards",
+    "chunk_count": 25,
+    "canonical_document_ids": [
+      "73023c7002c7"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=363"
+    ],
+    "target_cohorts": [
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 4,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Asset Management Policy",
+    "chunk_count": 35,
+    "canonical_document_ids": [
+      "ccf02d77ec04"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=229"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 3,
+    "chunking_method_counts": {
+      "Atomic-Pass": 19,
+      "Hard-Cut-Limit": 8,
+      "Lossless-Table-Split": 3,
+      "Semantic-Variance-Bypass": 5
+    }
+  },
+  {
+    "document_title": "Asset Management Procedure  - Disposal/Sale",
+    "chunk_count": 29,
+    "canonical_document_ids": [
+      "93139a20cbff"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=230"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 17,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 4
+    }
+  },
+  {
+    "document_title": "Award Nomenclature Policy",
+    "chunk_count": 29,
+    "canonical_document_ids": [
+      "87b946123149"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=155"
+    ],
+    "target_cohorts": [
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR",
+      "Postgrad",
+      "Undergrad"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 17,
+    "chunking_method_counts": {
+      "Atomic-Pass": 11,
+      "Hierarchical-Semantic-Optimized": 1,
+      "Lossless-Table-Split": 17
+    }
+  },
+  {
+    "document_title": "Brand Identity Policy",
+    "chunk_count": 17,
+    "canonical_document_ids": [
+      "fcd8ef814928"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=31"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 11,
+      "Hard-Cut-Limit": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Breastfeeding / Chestfeeding Policy",
+    "chunk_count": 27,
+    "canonical_document_ids": [
+      "33656f1143f1"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=177"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 8,
+      "Hard-Cut-Limit": 7,
+      "Hierarchical-Semantic-Optimized": 6,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 4
+    }
+  },
+  {
+    "document_title": "Campus Access, Premises and Facilities Policy",
+    "chunk_count": 18,
+    "canonical_document_ids": [
+      "f6b5cbf0365d"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=434"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 4,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 10,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 3,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Child Safety Code of Conduct",
+    "chunk_count": 6,
+    "canonical_document_ids": [
+      "1c4c808fa153"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=295"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 1,
+    "chunking_method_counts": {
+      "Atomic-Pass": 1,
+      "Hard-Cut-Limit": 2,
+      "Lossless-Table-Split": 1,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Child Safety and Wellbeing Policy",
+    "chunk_count": 30,
+    "canonical_document_ids": [
+      "89ef3fcf5b83"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=294"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 4,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Hard-Cut-Limit": 5,
+      "Hierarchical-Semantic-Optimized": 3,
+      "Lossless-Table-Split": 4,
+      "Semantic-Variance-Bypass": 5
+    }
+  },
+  {
+    "document_title": "Code of Conduct",
+    "chunk_count": 2,
+    "canonical_document_ids": [
+      "239535b7bc7b"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=71"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 0,
+    "chunking_method_counts": {
+      "Atomic-Pass": 2
+    }
+  },
+  {
+    "document_title": "Company Directors and Officers Policy",
+    "chunk_count": 14,
+    "canonical_document_ids": [
+      "7c19fa13a137"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=28"
+    ],
+    "target_cohorts": [
+      "Staff"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 6,
+      "Hard-Cut-Limit": 3,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Complex Conduct Assessment and Management Policy",
+    "chunk_count": 18,
+    "canonical_document_ids": [
+      "4d13bd4489b1"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=381"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 4,
+    "chunking_method_counts": {
+      "Atomic-Pass": 8,
+      "Hard-Cut-Limit": 1,
+      "Hierarchical-Semantic-Optimized": 5,
+      "Lossless-Table-Split": 1,
+      "Table-Long-Row-Character-Split": 3
+    }
+  },
+  {
+    "document_title": "Compliance Management Policy",
+    "chunk_count": 25,
+    "canonical_document_ids": [
+      "a3aa50b805e8"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=280"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 9,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 8,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Confirmation of Identity for Aboriginal and Torres Strait Islander Staff Policy",
+    "chunk_count": 13,
+    "canonical_document_ids": [
+      "845a6f3c82dc"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=412"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 4,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Conflict of Interest Policy",
+    "chunk_count": 47,
+    "canonical_document_ids": [
+      "ef916226fe97"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=83"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "Guest"
+    ],
+    "exception_chunk_count": 5,
+    "table_chunk_count": 8,
+    "chunking_method_counts": {
+      "Atomic-Pass": 18,
+      "Hard-Cut-Limit": 7,
+      "Hierarchical-Semantic-Optimized": 9,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 5,
+      "Table-Long-Row-Character-Split": 6
+    }
+  },
+  {
+    "document_title": "Conflict of Interest Procedure - Staff Authored Texts",
+    "chunk_count": 10,
+    "canonical_document_ids": [
+      "b570683cd632"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=331"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 6,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Conscientious Objections Policy",
+    "chunk_count": 15,
+    "canonical_document_ids": [
+      "9d12729e039b"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=224"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 11,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Contracts Policy",
+    "chunk_count": 38,
+    "canonical_document_ids": [
+      "3fce585d9cdd"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=30"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 12,
+    "chunking_method_counts": {
+      "Atomic-Pass": 15,
+      "Hard-Cut-Limit": 5,
+      "Hierarchical-Semantic-Optimized": 3,
+      "Lossless-Table-Split": 12,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Corporate Credit Card Policy",
+    "chunk_count": 36,
+    "canonical_document_ids": [
+      "215cc52f7eb6"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=265"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 19,
+      "Hard-Cut-Limit": 6,
+      "Hierarchical-Semantic-Optimized": 3,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 6
+    }
+  },
+  {
+    "document_title": "Course Design Policy",
+    "chunk_count": 14,
+    "canonical_document_ids": [
+      "a77c0175778e"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=328"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Postgrad",
+      "Undergrad"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 6,
+      "Hard-Cut-Limit": 3,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Course Design Standards",
+    "chunk_count": 35,
+    "canonical_document_ids": [
+      "c8d49063624b"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=433"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 8,
+    "chunking_method_counts": {
+      "Atomic-Pass": 19,
+      "Hard-Cut-Limit": 5,
+      "Lossless-Table-Split": 8,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Course and Subject Management Policy",
+    "chunk_count": 11,
+    "canonical_document_ids": [
+      "0d956b2eec84"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=356"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR",
+      "Postgrad",
+      "Undergrad"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 7,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Course and Subject Management Procedure - Approvals",
+    "chunk_count": 48,
+    "canonical_document_ids": [
+      "d1e032bbf0ad"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=379"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR",
+      "Postgrad",
+      "Undergrad"
+    ],
+    "exception_chunk_count": 5,
+    "table_chunk_count": 21,
+    "chunking_method_counts": {
+      "Atomic-Pass": 15,
+      "Hard-Cut-Limit": 5,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 10,
+      "Semantic-Variance-Bypass": 3,
+      "Table-Long-Row-Character-Split": 11
+    }
+  },
+  {
+    "document_title": "Course and Subject Management Procedure - Monitoring and Review",
+    "chunk_count": 29,
+    "canonical_document_ids": [
+      "85d676eba98b"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=386"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR",
+      "Postgrad",
+      "Undergrad"
+    ],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 15,
+      "Hard-Cut-Limit": 6,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 6
+    }
+  },
+  {
+    "document_title": "Critical Incident and Business Continuity Management Policy",
+    "chunk_count": 20,
+    "canonical_document_ids": [
+      "1f38a71264e0"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=35"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 7,
+    "chunking_method_counts": {
+      "Atomic-Pass": 7,
+      "Hard-Cut-Limit": 3,
+      "Lossless-Table-Split": 4,
+      "Semantic-Variance-Bypass": 3,
+      "Table-Long-Row-Character-Split": 3
+    }
+  },
+  {
+    "document_title": "Data Governance Policy",
+    "chunk_count": 27,
+    "canonical_document_ids": [
+      "48166b805000"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=373"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 4,
+    "chunking_method_counts": {
+      "Atomic-Pass": 20,
+      "Hard-Cut-Limit": 2,
+      "Lossless-Table-Split": 4,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Delegations and Authorisations Policy",
+    "chunk_count": 24,
+    "canonical_document_ids": [
+      "a575b644ed8b"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=66"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 4,
+    "table_chunk_count": 4,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Hard-Cut-Limit": 1,
+      "Hierarchical-Semantic-Optimized": 5,
+      "Lossless-Table-Split": 4,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Desktop Equipment Policy",
+    "chunk_count": 32,
+    "canonical_document_ids": [
+      "08d9c728489b"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=366"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 4,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 20,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 3,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Direct Appointment Policy",
+    "chunk_count": 12,
+    "canonical_document_ids": [
+      "3d5897deb664"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=86"
+    ],
+    "target_cohorts": [
+      "Staff"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 10,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Disability Policy",
+    "chunk_count": 9,
+    "canonical_document_ids": [
+      "05b35252a49d"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=284"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 5,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Disclosure of Offence, Charge or Conviction Policy",
+    "chunk_count": 21,
+    "canonical_document_ids": [
+      "8b4789d987d0"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=93"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Casual",
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 0,
+    "chunking_method_counts": {
+      "Atomic-Pass": 9,
+      "Hard-Cut-Limit": 5,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Domestic Coursework Scholarships Policy",
+    "chunk_count": 29,
+    "canonical_document_ids": [
+      "a44f745e0f1b"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=344"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR"
+    ],
+    "exception_chunk_count": 5,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 18,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Donor Rights Policy",
+    "chunk_count": 9,
+    "canonical_document_ids": [
+      "9f6dce862834"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=4"
+    ],
+    "target_cohorts": [
+      "Public"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 0,
+    "chunking_method_counts": {
+      "Atomic-Pass": 9
+    }
+  },
+  {
+    "document_title": "Education Agent Management Policy",
+    "chunk_count": 20,
+    "canonical_document_ids": [
+      "c52d402c60fa"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=347"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 7,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 6,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Educational Partnerships Policy",
+    "chunk_count": 10,
+    "canonical_document_ids": [
+      "0a7b4dedc174"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=165"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 6,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Educational Partnerships Procedure - Third Party Arrangements",
+    "chunk_count": 30,
+    "canonical_document_ids": [
+      "887287f0973f"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=368"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 18,
+      "Hard-Cut-Limit": 5,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 5
+    }
+  },
+  {
+    "document_title": "Educational Partnerships Procedure - Work-Based Learning",
+    "chunk_count": 20,
+    "canonical_document_ids": [
+      "1c96840e9790"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=335"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "HDR"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 10,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Elite Athlete Support Policy",
+    "chunk_count": 15,
+    "canonical_document_ids": [
+      "bc74e31740de"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=256"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Professional"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "English Language Entry Requirements Policy",
+    "chunk_count": 34,
+    "canonical_document_ids": [
+      "d87251a2c423"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=72"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR",
+      "Postgrad"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 9,
+    "chunking_method_counts": {
+      "Atomic-Pass": 19,
+      "Hard-Cut-Limit": 3,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3,
+      "Table-Long-Row-Character-Split": 7
+    }
+  },
+  {
+    "document_title": "Enrolment Policy",
+    "chunk_count": 9,
+    "canonical_document_ids": [
+      "52ddf0650fc2"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=393"
+    ],
+    "target_cohorts": [
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 5,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Enrolment Procedure",
+    "chunk_count": 47,
+    "canonical_document_ids": [
+      "d2cbb97aa8ef"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=398"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 7,
+    "table_chunk_count": 6,
+    "chunking_method_counts": {
+      "Atomic-Pass": 30,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 6,
+      "Lossless-Table-Split": 6,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Enrolment Procedure - Variations",
+    "chunk_count": 50,
+    "canonical_document_ids": [
+      "ed86b7991efd"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=394"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 9,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 31,
+      "Hard-Cut-Limit": 6,
+      "Hierarchical-Semantic-Optimized": 6,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 5
+    }
+  },
+  {
+    "document_title": "Environmental Sustainability Policy",
+    "chunk_count": 24,
+    "canonical_document_ids": [
+      "4c31fdfe2127"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=20"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 8,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 7,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Equity, Diversity and Inclusion (Staff) Policy",
+    "chunk_count": 16,
+    "canonical_document_ids": [
+      "a228185cb76e"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=283"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 7,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "External and Invited Speakers on Campus Policy",
+    "chunk_count": 15,
+    "canonical_document_ids": [
+      "f4416763bce9"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=375"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 9,
+      "Hard-Cut-Limit": 1,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Family and Domestic Violence Support Policy",
+    "chunk_count": 43,
+    "canonical_document_ids": [
+      "13dc9639159b"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=91"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 6,
+    "chunking_method_counts": {
+      "Atomic-Pass": 23,
+      "Hard-Cut-Limit": 7,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 6,
+      "Semantic-Variance-Bypass": 5
+    }
+  },
+  {
+    "document_title": "Financial Management Policy",
+    "chunk_count": 18,
+    "canonical_document_ids": [
+      "b8e63b27a675"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=407"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 8,
+      "Hard-Cut-Limit": 4,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 4
+    }
+  },
+  {
+    "document_title": "Financial Management Procedure - Taxation",
+    "chunk_count": 28,
+    "canonical_document_ids": [
+      "06b0aa3c1b1d"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=408"
+    ],
+    "target_cohorts": [
+      "Staff"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 4,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 9,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Flexible Working Policy",
+    "chunk_count": 40,
+    "canonical_document_ids": [
+      "1040d4912d73"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=88"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "Professional"
+    ],
+    "exception_chunk_count": 5,
+    "table_chunk_count": 10,
+    "chunking_method_counts": {
+      "Atomic-Pass": 20,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 3,
+      "Lossless-Table-Split": 3,
+      "Semantic-Variance-Bypass": 3,
+      "Table-Long-Row-Character-Split": 7
+    }
+  },
+  {
+    "document_title": "Foreign Engagement Policy",
+    "chunk_count": 45,
+    "canonical_document_ids": [
+      "d7714474d0a2"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=399"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 6,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Hard-Cut-Limit": 10,
+      "Hierarchical-Semantic-Optimized": 10,
+      "Lossless-Table-Split": 6,
+      "Semantic-Variance-Bypass": 6
+    }
+  },
+  {
+    "document_title": "Fraud and Corruption Control Policy",
+    "chunk_count": 9,
+    "canonical_document_ids": [
+      "16e467f68378"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=37"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 0,
+    "chunking_method_counts": {
+      "Atomic-Pass": 5,
+      "Hard-Cut-Limit": 1,
+      "Hierarchical-Semantic-Optimized": 3
+    }
+  },
+  {
+    "document_title": "Fundraising Policy",
+    "chunk_count": 12,
+    "canonical_document_ids": [
+      "8b8b1b39b9fe"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=6"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 0,
+    "chunking_method_counts": {
+      "Atomic-Pass": 10,
+      "Hard-Cut-Limit": 1,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Gender Equity Policy",
+    "chunk_count": 22,
+    "canonical_document_ids": [
+      "5f4e45d968a2"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=281"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 9,
+      "Hard-Cut-Limit": 6,
+      "Hierarchical-Semantic-Optimized": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 4
+    }
+  },
+  {
+    "document_title": "Gift Acceptance Policy",
+    "chunk_count": 15,
+    "canonical_document_ids": [
+      "9503efe17020"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=7"
+    ],
+    "target_cohorts": [
+      "Public"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 0,
+    "chunking_method_counts": {
+      "Atomic-Pass": 15
+    }
+  },
+  {
+    "document_title": "Graduate Research Admissions Policy",
+    "chunk_count": 24,
+    "canonical_document_ids": [
+      "f3d2d49a771f"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=113"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR",
+      "Postgrad"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 10,
+      "Hard-Cut-Limit": 5,
+      "Hierarchical-Semantic-Optimized": 3,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 4
+    }
+  },
+  {
+    "document_title": "Graduate Research Candidature Policy",
+    "chunk_count": 74,
+    "canonical_document_ids": [
+      "381aa93fca07"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=305"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR"
+    ],
+    "exception_chunk_count": 7,
+    "table_chunk_count": 3,
+    "chunking_method_counts": {
+      "Atomic-Pass": 47,
+      "Hard-Cut-Limit": 12,
+      "Lossless-Table-Split": 3,
+      "Semantic-Variance-Bypass": 12
+    }
+  },
+  {
+    "document_title": "Graduate Research Course Management Policy",
+    "chunk_count": 32,
+    "canonical_document_ids": [
+      "e1edecef0d69"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=304"
+    ],
+    "target_cohorts": [
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 10,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 10,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Graduate Research Examinations Policy",
+    "chunk_count": 61,
+    "canonical_document_ids": [
+      "a1cee06a0d6f"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=119"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "HDR",
+      "Postgrad"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 12,
+    "chunking_method_counts": {
+      "Atomic-Pass": 39,
+      "Hard-Cut-Limit": 5,
+      "Lossless-Table-Split": 8,
+      "Semantic-Variance-Bypass": 5,
+      "Table-Long-Row-Character-Split": 4
+    }
+  },
+  {
+    "document_title": "Graduate Research Examinations Procedure - Appointment of Examiners",
+    "chunk_count": 20,
+    "canonical_document_ids": [
+      "189110bc7e4b"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=120"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "HDR"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 8,
+      "Hard-Cut-Limit": 5,
+      "Hierarchical-Semantic-Optimized": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 4
+    }
+  },
+  {
+    "document_title": "Graduate Research Examinations Procedure - Revise and Resubmit",
+    "chunk_count": 20,
+    "canonical_document_ids": [
+      "bbfe60cb1c55"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=406"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 5,
+    "chunking_method_counts": {
+      "Atomic-Pass": 7,
+      "Hard-Cut-Limit": 4,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 4,
+      "Table-Long-Row-Character-Split": 3
+    }
+  },
+  {
+    "document_title": "Graduate Research Examinations Procedure - Thesis Requirements, Submission and Retention",
+    "chunk_count": 28,
+    "canonical_document_ids": [
+      "4bd25eae60c2"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=121"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "HDR"
+    ],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 16,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 5,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Graduate Research Progress Policy",
+    "chunk_count": 46,
+    "canonical_document_ids": [
+      "09d67297af10"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=306"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR",
+      "International"
+    ],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 4,
+    "chunking_method_counts": {
+      "Atomic-Pass": 24,
+      "Hard-Cut-Limit": 7,
+      "Hierarchical-Semantic-Optimized": 3,
+      "Lossless-Table-Split": 4,
+      "Semantic-Variance-Bypass": 8
+    }
+  },
+  {
+    "document_title": "Graduate Research Show Cause Procedure",
+    "chunk_count": 21,
+    "canonical_document_ids": [
+      "c3b4b94680fa"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=318"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR",
+      "International"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 11,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Graduate Research Supervision Policy",
+    "chunk_count": 44,
+    "canonical_document_ids": [
+      "9ed5d5af6925"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=114"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "HDR"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 5,
+    "chunking_method_counts": {
+      "Atomic-Pass": 16,
+      "Hard-Cut-Limit": 9,
+      "Hierarchical-Semantic-Optimized": 7,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 7,
+      "Table-Long-Row-Character-Split": 3
+    }
+  },
+  {
+    "document_title": "Graduate Research Support Policy",
+    "chunk_count": 20,
+    "canonical_document_ids": [
+      "3cfc8e5cf665"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=118"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 8,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 4
+    }
+  },
+  {
+    "document_title": "Graduate Research and RTP Scholarships Policy",
+    "chunk_count": 35,
+    "canonical_document_ids": [
+      "e772b5589493"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=317"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR",
+      "Postgrad"
+    ],
+    "exception_chunk_count": 4,
+    "table_chunk_count": 3,
+    "chunking_method_counts": {
+      "Atomic-Pass": 21,
+      "Hard-Cut-Limit": 5,
+      "Lossless-Table-Split": 3,
+      "Semantic-Variance-Bypass": 6
+    }
+  },
+  {
+    "document_title": "Health and Safety Policy",
+    "chunk_count": 9,
+    "canonical_document_ids": [
+      "358d41e297eb"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=179"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 5,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Chemical Safety",
+    "chunk_count": 25,
+    "canonical_document_ids": [
+      "062f7cfc40e7"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=365"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 21,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Confined Spaces",
+    "chunk_count": 32,
+    "canonical_document_ids": [
+      "025543b4d914"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=324"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 9,
+      "Hard-Cut-Limit": 8,
+      "Hierarchical-Semantic-Optimized": 8,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 5
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Consultation and Communication",
+    "chunk_count": 21,
+    "canonical_document_ids": [
+      "d5183b9ccca1"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=180"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 7,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14,
+      "Lossless-Table-Split": 7
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Contractor Management",
+    "chunk_count": 14,
+    "canonical_document_ids": [
+      "85327bc9f49f"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=181"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 10,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Emergency Control Organisation",
+    "chunk_count": 18,
+    "canonical_document_ids": [
+      "8e741766998f"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=183"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Events",
+    "chunk_count": 16,
+    "canonical_document_ids": [
+      "ce9f8e967ef1"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=213"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 9,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Fieldwork Safety",
+    "chunk_count": 25,
+    "canonical_document_ids": [
+      "4ea2ee24f9a8"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=327"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Undergrad"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 4,
+    "chunking_method_counts": {
+      "Atomic-Pass": 19,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 4,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Governance and Leadership",
+    "chunk_count": 15,
+    "canonical_document_ids": [
+      "95a6c77737e6"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=319"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Hazard Identification, Risk Assessment and Control",
+    "chunk_count": 18,
+    "canonical_document_ids": [
+      "1721a2f389fc"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=322"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 16,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Hazard and Incident Reporting",
+    "chunk_count": 17,
+    "canonical_document_ids": [
+      "d8d421801179"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=323"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 4,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Lossless-Table-Split": 4
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Incident Investigation",
+    "chunk_count": 16,
+    "canonical_document_ids": [
+      "243218492840"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=320"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Induction and Training",
+    "chunk_count": 16,
+    "canonical_document_ids": [
+      "bf89572b0777"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=333"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Inspections, Assessment and Review",
+    "chunk_count": 17,
+    "canonical_document_ids": [
+      "c5fb9c9376a8"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=355"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Ionising Radiation",
+    "chunk_count": 24,
+    "canonical_document_ids": [
+      "d087885844fd"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=370"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 12,
+      "Hard-Cut-Limit": 5,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 5
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Laboratory (Research) Safety",
+    "chunk_count": 26,
+    "canonical_document_ids": [
+      "ef06dbad4a97"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=361"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 20,
+      "Hard-Cut-Limit": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Laboratory (Teaching) Safety",
+    "chunk_count": 22,
+    "canonical_document_ids": [
+      "29ba7dbf5c09"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=362"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 20,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Pet and Assistance Animals",
+    "chunk_count": 20,
+    "canonical_document_ids": [
+      "3596236466f2"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=349"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "Guest"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 10,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 3,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Plant, Machinery and Equipment",
+    "chunk_count": 16,
+    "canonical_document_ids": [
+      "2f08419f9225"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=425"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Psychosocial Safety Management",
+    "chunk_count": 22,
+    "canonical_document_ids": [
+      "9a5298c71ff7"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=424"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14,
+      "Hard-Cut-Limit": 3,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Safe Driving",
+    "chunk_count": 17,
+    "canonical_document_ids": [
+      "2b6fe6f22c0d"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=321"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Health and Safety Procedure - Smoke Free Environment",
+    "chunk_count": 13,
+    "canonical_document_ids": [
+      "37edd13ff7df"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=191"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 11,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Higher Doctorate Policy",
+    "chunk_count": 21,
+    "canonical_document_ids": [
+      "2e40c0f67afd"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=128"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 17,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Higher Duties Policy",
+    "chunk_count": 19,
+    "canonical_document_ids": [
+      "d27c552f985a"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=92"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "Professional"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 4,
+    "chunking_method_counts": {
+      "Atomic-Pass": 11,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 4
+    }
+  },
+  {
+    "document_title": "Honorary Appointments Policy",
+    "chunk_count": 21,
+    "canonical_document_ids": [
+      "dbc643196140"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=55"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 7,
+    "chunking_method_counts": {
+      "Atomic-Pass": 7,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 7,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Honorary Degree Policy",
+    "chunk_count": 11,
+    "canonical_document_ids": [
+      "85f2d8ef3093"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=8"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 9,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Hybrid Working and Alternative Work Location  Procedure",
+    "chunk_count": 36,
+    "canonical_document_ids": [
+      "29852423e438"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=429"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "Casual",
+      "Professional"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 10,
+    "chunking_method_counts": {
+      "Atomic-Pass": 16,
+      "Hard-Cut-Limit": 5,
+      "Lossless-Table-Split": 4,
+      "Semantic-Variance-Bypass": 5,
+      "Table-Long-Row-Character-Split": 6
+    }
+  },
+  {
+    "document_title": "IS Acceptable Use Policy",
+    "chunk_count": 22,
+    "canonical_document_ids": [
+      "1c444131bec6"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=418"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 3,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Information Security Policy",
+    "chunk_count": 57,
+    "canonical_document_ids": [
+      "35fa407b3580"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=69"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 46,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 7,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Injury Management Policy",
+    "chunk_count": 12,
+    "canonical_document_ids": [
+      "86d3b0c82a84"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=190"
+    ],
+    "target_cohorts": [
+      "Staff"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 8,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Intellectual Property Policy",
+    "chunk_count": 26,
+    "canonical_document_ids": [
+      "e27d033f570d"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=101"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 3,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 3,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "International Students Release Policy",
+    "chunk_count": 22,
+    "canonical_document_ids": [
+      "043fbcf25076"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=176"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "International"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 11,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "La Trobe University Commercial Activities Guidelines",
+    "chunk_count": 2,
+    "canonical_document_ids": [
+      "d06d0f5dc5d5"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=278"
+    ],
+    "target_cohorts": [
+      "Public"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 0,
+    "chunking_method_counts": {
+      "Atomic-Pass": 2
+    }
+  },
+  {
+    "document_title": "Leave Entitlements Policy",
+    "chunk_count": 97,
+    "canonical_document_ids": [
+      "63b778d91bf9"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=94"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Casual",
+      "Professional"
+    ],
+    "exception_chunk_count": 12,
+    "table_chunk_count": 14,
+    "chunking_method_counts": {
+      "Atomic-Pass": 40,
+      "Hard-Cut-Limit": 20,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 9,
+      "Semantic-Variance-Bypass": 19,
+      "Table-Long-Row-Character-Split": 5
+    }
+  },
+  {
+    "document_title": "Legal Advice Policy",
+    "chunk_count": 15,
+    "canonical_document_ids": [
+      "98e32dafcc50"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=396"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 7,
+      "Hard-Cut-Limit": 3,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Library and Digital Learning Resources Policy",
+    "chunk_count": 32,
+    "canonical_document_ids": [
+      "08caa64792d3"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=413"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14,
+      "Hard-Cut-Limit": 8,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 8
+    }
+  },
+  {
+    "document_title": "Managing Ill Health Policy",
+    "chunk_count": 20,
+    "canonical_document_ids": [
+      "c8de9590da2d"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=426"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 4,
+    "chunking_method_counts": {
+      "Atomic-Pass": 6,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 4,
+      "Semantic-Variance-Bypass": 4
+    }
+  },
+  {
+    "document_title": "Media Engagement, Public Utterances and Government Relations Policy",
+    "chunk_count": 23,
+    "canonical_document_ids": [
+      "380f310a9f49"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=376"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest",
+      "HDR"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 3,
+    "chunking_method_counts": {
+      "Atomic-Pass": 16,
+      "Hard-Cut-Limit": 2,
+      "Lossless-Table-Split": 3,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Mobile Communication Device Policy",
+    "chunk_count": 32,
+    "canonical_document_ids": [
+      "ed0f91505700"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=70"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 4,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14,
+      "Hard-Cut-Limit": 8,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 6
+    }
+  },
+  {
+    "document_title": "Named Gift Policy",
+    "chunk_count": 17,
+    "canonical_document_ids": [
+      "04fd88677c83"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=5"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 0,
+    "chunking_method_counts": {
+      "Atomic-Pass": 17
+    }
+  },
+  {
+    "document_title": "Naming Rights Policy",
+    "chunk_count": 17,
+    "canonical_document_ids": [
+      "f87b7f55d980"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=364"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "OS-HELP Loans Policy",
+    "chunk_count": 22,
+    "canonical_document_ids": [
+      "b5ddc0152bd9"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=204"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14,
+      "Hard-Cut-Limit": 1,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Outside Studies Program for Academic Staff Policy",
+    "chunk_count": 41,
+    "canonical_document_ids": [
+      "bc4b1caaef88"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=82"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic"
+    ],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 24,
+      "Hard-Cut-Limit": 5,
+      "Hierarchical-Semantic-Optimized": 6,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 4
+    }
+  },
+  {
+    "document_title": "Outside Work Policy (Academic)",
+    "chunk_count": 30,
+    "canonical_document_ids": [
+      "c713e2b72086"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=103"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 6,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 16,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 8,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Outside Work Policy (Professional Staff)",
+    "chunk_count": 21,
+    "canonical_document_ids": [
+      "3463fdda84cd"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=428"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "Casual",
+      "Professional"
+    ],
+    "exception_chunk_count": 6,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 7,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 5,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Overtime Policy",
+    "chunk_count": 24,
+    "canonical_document_ids": [
+      "dbb604bb4042"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=95"
+    ],
+    "target_cohorts": [
+      "Staff"
+    ],
+    "contextual_audience_tags": [
+      "Casual",
+      "Professional"
+    ],
+    "exception_chunk_count": 4,
+    "table_chunk_count": 4,
+    "chunking_method_counts": {
+      "Atomic-Pass": 20,
+      "Lossless-Table-Split": 4
+    }
+  },
+  {
+    "document_title": "Paid Additional Work Within the University - Full Time Staff Procedure",
+    "chunk_count": 8,
+    "canonical_document_ids": [
+      "0f89d2727ac8"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=53"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "Professional"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 0,
+    "chunking_method_counts": {
+      "Atomic-Pass": 8
+    }
+  },
+  {
+    "document_title": "Parental Leave Entitlements Policy",
+    "chunk_count": 81,
+    "canonical_document_ids": [
+      "1e7b0658704b"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=343"
+    ],
+    "target_cohorts": [
+      "Staff"
+    ],
+    "contextual_audience_tags": [
+      "Casual"
+    ],
+    "exception_chunk_count": 7,
+    "table_chunk_count": 22,
+    "chunking_method_counts": {
+      "Atomic-Pass": 25,
+      "Hard-Cut-Limit": 11,
+      "Hierarchical-Semantic-Optimized": 16,
+      "Lossless-Table-Split": 20,
+      "Semantic-Variance-Bypass": 7,
+      "Table-Long-Row-Character-Split": 2
+    }
+  },
+  {
+    "document_title": "Payment Card Industry Data Security Standards (PCI DSS) Policy",
+    "chunk_count": 27,
+    "canonical_document_ids": [
+      "3f3311a2c80f"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=264"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest",
+      "International"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 4,
+    "chunking_method_counts": {
+      "Atomic-Pass": 15,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 4,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Performance Procedure - Annual Performance Cycle",
+    "chunk_count": 33,
+    "canonical_document_ids": [
+      "3a1199312962"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=99"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 16,
+    "chunking_method_counts": {
+      "Atomic-Pass": 15,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 3,
+      "Semantic-Variance-Bypass": 1,
+      "Table-Long-Row-Character-Split": 13
+    }
+  },
+  {
+    "document_title": "Pre-Retirement Procedure",
+    "chunk_count": 24,
+    "canonical_document_ids": [
+      "a6140daa3c24"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=65"
+    ],
+    "target_cohorts": [
+      "Staff"
+    ],
+    "contextual_audience_tags": [
+      "Academic"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 1,
+    "chunking_method_counts": {
+      "Atomic-Pass": 23,
+      "Lossless-Table-Split": 1
+    }
+  },
+  {
+    "document_title": "Privacy Policy",
+    "chunk_count": 76,
+    "canonical_document_ids": [
+      "e01def5b4f51"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=1"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 5,
+    "table_chunk_count": 21,
+    "chunking_method_counts": {
+      "Atomic-Pass": 23,
+      "Hard-Cut-Limit": 13,
+      "Hierarchical-Semantic-Optimized": 11,
+      "Lossless-Table-Split": 3,
+      "Semantic-Variance-Bypass": 8,
+      "Table-Long-Row-Character-Split": 18
+    }
+  },
+  {
+    "document_title": "Probation (Academic Staff) Policy - for staff who commenced on or before 30 June 2023",
+    "chunk_count": 17,
+    "canonical_document_ids": [
+      "b31dae4135c6"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=391"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "Casual",
+      "Professional"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 0,
+    "chunking_method_counts": {
+      "Atomic-Pass": 7,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Semantic-Variance-Bypass": 4
+    }
+  },
+  {
+    "document_title": "Probation (Continuing Academic Staff) Policy - for staff who commenced on or after 1 July 2023",
+    "chunk_count": 23,
+    "canonical_document_ids": [
+      "72ac9f0b2ab3"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=401"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "Casual",
+      "Professional"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 4,
+    "chunking_method_counts": {
+      "Atomic-Pass": 9,
+      "Hard-Cut-Limit": 5,
+      "Hierarchical-Semantic-Optimized": 1,
+      "Lossless-Table-Split": 4,
+      "Semantic-Variance-Bypass": 4
+    }
+  },
+  {
+    "document_title": "Probation (Fixed Term Academic Staff) Policy",
+    "chunk_count": 21,
+    "canonical_document_ids": [
+      "104770abeb49"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=423"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "Casual",
+      "Professional"
+    ],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 9,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 3,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Probation (Professional Staff) Policy",
+    "chunk_count": 19,
+    "canonical_document_ids": [
+      "61ef14122927"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=392"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic",
+      "Casual",
+      "Professional"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 7,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 3,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Procurement Policy",
+    "chunk_count": 27,
+    "canonical_document_ids": [
+      "4ae69c896fde"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=267"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 12,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 9,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Procurement Procedure",
+    "chunk_count": 47,
+    "canonical_document_ids": [
+      "41b736de8dd3"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=410"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 26,
+      "Hard-Cut-Limit": 9,
+      "Hierarchical-Semantic-Optimized": 5,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 5
+    }
+  },
+  {
+    "document_title": "Protection of Freedom of Speech and Academic Freedom Policy",
+    "chunk_count": 4,
+    "canonical_document_ids": [
+      "8a214ea5d896"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=374"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 1,
+    "chunking_method_counts": {
+      "Atomic-Pass": 1,
+      "Hard-Cut-Limit": 1,
+      "Hierarchical-Semantic-Optimized": 1,
+      "Lossless-Table-Split": 1
+    }
+  },
+  {
+    "document_title": "Public Interest (Whistleblower) Disclosure Policy",
+    "chunk_count": 19,
+    "canonical_document_ids": [
+      "0eb5d1b9bba2"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=27"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 0,
+    "chunking_method_counts": {
+      "Atomic-Pass": 17,
+      "Hard-Cut-Limit": 1,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Qualifications Issuance Policy",
+    "chunk_count": 36,
+    "canonical_document_ids": [
+      "1adf9257133e"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=194"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 11,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Hard-Cut-Limit": 7,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 5,
+      "Table-Long-Row-Character-Split": 9
+    }
+  },
+  {
+    "document_title": "Re-employment of Redundant Staff Policy",
+    "chunk_count": 14,
+    "canonical_document_ids": [
+      "85f9fde427a9"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=85"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Casual",
+      "Guest"
+    ],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 10,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Recognition of Student Organisations Policy",
+    "chunk_count": 10,
+    "canonical_document_ids": [
+      "3ff77dda4666"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=77"
+    ],
+    "target_cohorts": [
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 6,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Records Management Policy",
+    "chunk_count": 30,
+    "canonical_document_ids": [
+      "da995c056e06"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=10"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 18,
+      "Hard-Cut-Limit": 5,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Recruitment Policy",
+    "chunk_count": 49,
+    "canonical_document_ids": [
+      "1135a5b4f8a7"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=56"
+    ],
+    "target_cohorts": [
+      "Staff"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 38,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 5,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Recruitment Procedure -  Head of Department",
+    "chunk_count": 19,
+    "canonical_document_ids": [
+      "2df0db5e64b3"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=58"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 17,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Recruitment Procedure -  Professors of Practice",
+    "chunk_count": 12,
+    "canonical_document_ids": [
+      "354170a89a56"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=64"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR",
+      "Postgrad"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 0,
+    "chunking_method_counts": {
+      "Atomic-Pass": 12
+    }
+  },
+  {
+    "document_title": "Recruitment Procedure - Associate Dean and Deputy Dean",
+    "chunk_count": 18,
+    "canonical_document_ids": [
+      "d47f58888b4d"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=430"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 16,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Recruitment Procedure - Dean",
+    "chunk_count": 17,
+    "canonical_document_ids": [
+      "a889e62dd2fd"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=57"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 15,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Recruitment Procedure - Position Nomenclature",
+    "chunk_count": 17,
+    "canonical_document_ids": [
+      "ac437e72979a"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=63"
+    ],
+    "target_cohorts": [
+      "Staff"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 4,
+    "table_chunk_count": 7,
+    "chunking_method_counts": {
+      "Atomic-Pass": 8,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1,
+      "Table-Long-Row-Character-Split": 5
+    }
+  },
+  {
+    "document_title": "Redeployment Procedure",
+    "chunk_count": 18,
+    "canonical_document_ids": [
+      "faa684c67ac0"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=273"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Casual",
+      "Professional"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 0,
+    "chunking_method_counts": {
+      "Atomic-Pass": 16,
+      "Hierarchical-Semantic-Optimized": 2
+    }
+  },
+  {
+    "document_title": "Relocation Assistance Policy",
+    "chunk_count": 23,
+    "canonical_document_ids": [
+      "e46bcf9d4a83"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=80"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 4,
+    "table_chunk_count": 5,
+    "chunking_method_counts": {
+      "Atomic-Pass": 16,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 5
+    }
+  },
+  {
+    "document_title": "Remote Pilot Aircraft Policy",
+    "chunk_count": 14,
+    "canonical_document_ids": [
+      "72c12065ee2e"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=336"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 6,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Remuneration and Benefits Policy",
+    "chunk_count": 9,
+    "canonical_document_ids": [
+      "c8ab976ec34f"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=84"
+    ],
+    "target_cohorts": [
+      "Staff"
+    ],
+    "contextual_audience_tags": [
+      "Professional"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 7,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Remuneration and Benefits Procedure - Executive and Senior Management Classification",
+    "chunk_count": 15,
+    "canonical_document_ids": [
+      "6f14fb3257a9"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=353"
+    ],
+    "target_cohorts": [
+      "Staff"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 4,
+    "chunking_method_counts": {
+      "Atomic-Pass": 7,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Table-Long-Row-Character-Split": 4
+    }
+  },
+  {
+    "document_title": "Remuneration and Benefits Procedure - Salary Loadings",
+    "chunk_count": 27,
+    "canonical_document_ids": [
+      "d1123da206d2"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=352"
+    ],
+    "target_cohorts": [
+      "Staff"
+    ],
+    "contextual_audience_tags": [
+      "Professional"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 18,
+    "chunking_method_counts": {
+      "Atomic-Pass": 5,
+      "Hard-Cut-Limit": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 2,
+      "Table-Long-Row-Character-Split": 16
+    }
+  },
+  {
+    "document_title": "Remuneration and Benefits Procedure - Senior Staff Annual Remuneration Review",
+    "chunk_count": 6,
+    "canonical_document_ids": [
+      "42a37720975b"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=354"
+    ],
+    "target_cohorts": [
+      "Staff"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 0,
+    "chunking_method_counts": {
+      "Atomic-Pass": 4,
+      "Hard-Cut-Limit": 1,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Research - Higher Degree Student Misconduct Procedure",
+    "chunk_count": 25,
+    "canonical_document_ids": [
+      "fbd8140a51d1"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=111"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 11,
+      "Hard-Cut-Limit": 6,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 6
+    }
+  },
+  {
+    "document_title": "Research Animal Ethics Procedure",
+    "chunk_count": 25,
+    "canonical_document_ids": [
+      "a113f08e942a"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=109"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 15,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Research Authorship and Outputs Policy",
+    "chunk_count": 40,
+    "canonical_document_ids": [
+      "cfc7bf47b06a"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=105"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 12,
+      "Hard-Cut-Limit": 9,
+      "Hierarchical-Semantic-Optimized": 10,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 7
+    }
+  },
+  {
+    "document_title": "Research Biosafety and Biosecurity Policy",
+    "chunk_count": 14,
+    "canonical_document_ids": [
+      "98faf6cba7c7"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=330"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 4,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Research Biosafety and Biosecurity Procedure",
+    "chunk_count": 39,
+    "canonical_document_ids": [
+      "135e5c26b771"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=108"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 7,
+      "Hard-Cut-Limit": 10,
+      "Hierarchical-Semantic-Optimized": 16,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 4
+    }
+  },
+  {
+    "document_title": "Research Centre Policy",
+    "chunk_count": 28,
+    "canonical_document_ids": [
+      "ef475127aa8b"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=279"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14,
+      "Hard-Cut-Limit": 6,
+      "Hierarchical-Semantic-Optimized": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 5
+    }
+  },
+  {
+    "document_title": "Research Clinical Trials Policy",
+    "chunk_count": 36,
+    "canonical_document_ids": [
+      "3ffe9cca413c"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=378"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 23,
+      "Hard-Cut-Limit": 5,
+      "Hierarchical-Semantic-Optimized": 5,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Research Contracts and Grants Policy",
+    "chunk_count": 21,
+    "canonical_document_ids": [
+      "b81ad9092eaf"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=104"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 10,
+      "Hard-Cut-Limit": 5,
+      "Hierarchical-Semantic-Optimized": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Research Costing and Pricing Policy",
+    "chunk_count": 21,
+    "canonical_document_ids": [
+      "a84e181a4a2a"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=427"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 4,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 8,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 6,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Research Data Management Policy",
+    "chunk_count": 26,
+    "canonical_document_ids": [
+      "6b2648f32b81"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=106"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 7,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 11,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 6,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "Research Governance Policy",
+    "chunk_count": 40,
+    "canonical_document_ids": [
+      "64df3071b565"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=372"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 4,
+    "chunking_method_counts": {
+      "Atomic-Pass": 17,
+      "Hard-Cut-Limit": 8,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 4,
+      "Semantic-Variance-Bypass": 7
+    }
+  },
+  {
+    "document_title": "Research Human Ethics Procedure",
+    "chunk_count": 40,
+    "canonical_document_ids": [
+      "1f47b3ee3b09"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=112"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 11,
+      "Hard-Cut-Limit": 9,
+      "Hierarchical-Semantic-Optimized": 12,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 6
+    }
+  },
+  {
+    "document_title": "Research Integrity Policy",
+    "chunk_count": 9,
+    "canonical_document_ids": [
+      "fff6daa84d75"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=107"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 5,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Research Misconduct Procedure",
+    "chunk_count": 70,
+    "canonical_document_ids": [
+      "ead9b981b6b3"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=110"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest",
+      "HDR"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 3,
+    "chunking_method_counts": {
+      "Atomic-Pass": 15,
+      "Hard-Cut-Limit": 21,
+      "Hierarchical-Semantic-Optimized": 14,
+      "Lossless-Table-Split": 3,
+      "Semantic-Variance-Bypass": 17
+    }
+  },
+  {
+    "document_title": "Research Peer Review Procedure",
+    "chunk_count": 16,
+    "canonical_document_ids": [
+      "671724425dda"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=292"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR"
+    ],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 7,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Responsible AI Adoption Policy",
+    "chunk_count": 20,
+    "canonical_document_ids": [
+      "dd3db6b9a6a2"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=417"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 6,
+    "chunking_method_counts": {
+      "Atomic-Pass": 7,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 6,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Risk Management Policy",
+    "chunk_count": 17,
+    "canonical_document_ids": [
+      "2cc78ce7159c"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=40"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 11,
+      "Hard-Cut-Limit": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "SPAM Policy",
+    "chunk_count": 9,
+    "canonical_document_ids": [
+      "5c94ae4bbf5f"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=68"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 5,
+      "Hard-Cut-Limit": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Secondment Procedure",
+    "chunk_count": 15,
+    "canonical_document_ids": [
+      "2226aca9ac24"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=52"
+    ],
+    "target_cohorts": [
+      "Staff"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Selection Committee Policy",
+    "chunk_count": 16,
+    "canonical_document_ids": [
+      "364b236276a0"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=287"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Academic"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 6,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 5,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Sexual Harm Prevention and Response Policy",
+    "chunk_count": 46,
+    "canonical_document_ids": [
+      "4fd8ec9f2731"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=337"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14,
+      "Hard-Cut-Limit": 13,
+      "Hierarchical-Semantic-Optimized": 10,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 7
+    }
+  },
+  {
+    "document_title": "Sexual Harm Prevention and Response Procedure - DFAT Funded Programs and Activities",
+    "chunk_count": 17,
+    "canonical_document_ids": [
+      "af6b93df5f7d"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=383"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 1,
+    "chunking_method_counts": {
+      "Atomic-Pass": 11,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 1,
+      "Lossless-Table-Split": 1,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Short Courses Policy",
+    "chunk_count": 44,
+    "canonical_document_ids": [
+      "5190358256a0"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=403"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 10,
+    "chunking_method_counts": {
+      "Atomic-Pass": 20,
+      "Hard-Cut-Limit": 6,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 10,
+      "Semantic-Variance-Bypass": 4
+    }
+  },
+  {
+    "document_title": "Space Allocation and Use Policy",
+    "chunk_count": 28,
+    "canonical_document_ids": [
+      "27f3d24d4fe2"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=302"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 7,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 2,
+      "Table-Long-Row-Character-Split": 5
+    }
+  },
+  {
+    "document_title": "Student Academic Misconduct Policy",
+    "chunk_count": 52,
+    "canonical_document_ids": [
+      "e4307101fa09"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=221"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR"
+    ],
+    "exception_chunk_count": 8,
+    "table_chunk_count": 7,
+    "chunking_method_counts": {
+      "Atomic-Pass": 16,
+      "Hard-Cut-Limit": 14,
+      "Hierarchical-Semantic-Optimized": 6,
+      "Lossless-Table-Split": 7,
+      "Semantic-Variance-Bypass": 9
+    }
+  },
+  {
+    "document_title": "Student Behaviours Policy",
+    "chunk_count": 19,
+    "canonical_document_ids": [
+      "fa35e2e59991"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=60"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 10,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 5,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Student Charter",
+    "chunk_count": 15,
+    "canonical_document_ids": [
+      "760c7611c3bc"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=225"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 1,
+    "chunking_method_counts": {
+      "Atomic-Pass": 6,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 3,
+      "Lossless-Table-Split": 1,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Student Communications Policy",
+    "chunk_count": 21,
+    "canonical_document_ids": [
+      "9345d9529d25"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=212"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 5,
+    "chunking_method_counts": {
+      "Atomic-Pass": 7,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 5,
+      "Lossless-Table-Split": 5,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Student Complaints Management Policy",
+    "chunk_count": 28,
+    "canonical_document_ids": [
+      "7da42d7e0bfa"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=160"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Hard-Cut-Limit": 5,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 4
+    }
+  },
+  {
+    "document_title": "Student Conduct Management Policy",
+    "chunk_count": 24,
+    "canonical_document_ids": [
+      "5c872629c6a2"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=382"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 3,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 1,
+      "Semantic-Variance-Bypass": 1,
+      "Table-Long-Row-Character-Split": 2
+    }
+  },
+  {
+    "document_title": "Student Fees Policy",
+    "chunk_count": 11,
+    "canonical_document_ids": [
+      "4a869c05f807"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=367"
+    ],
+    "target_cohorts": [
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 4,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 5,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Student Fees Procedure - Fees Payable",
+    "chunk_count": 41,
+    "canonical_document_ids": [
+      "754d247a437f"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=405"
+    ],
+    "target_cohorts": [
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 30,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 3,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Student Fees Procedure - Refunds",
+    "chunk_count": 37,
+    "canonical_document_ids": [
+      "4dc7e2192050"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=404"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "International"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 8,
+    "chunking_method_counts": {
+      "Atomic-Pass": 25,
+      "Hard-Cut-Limit": 3,
+      "Lossless-Table-Split": 6,
+      "Semantic-Variance-Bypass": 1,
+      "Table-Long-Row-Character-Split": 2
+    }
+  },
+  {
+    "document_title": "Student Fees Procedure - Remission of Debt or Fee Liability",
+    "chunk_count": 22,
+    "canonical_document_ids": [
+      "3b640159a395"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=419"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Student Mobility Grant Policy",
+    "chunk_count": 11,
+    "canonical_document_ids": [
+      "ac8f0d739c9b"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=175"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 5,
+      "Hard-Cut-Limit": 1,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Student Support Policy",
+    "chunk_count": 48,
+    "canonical_document_ids": [
+      "50c561aae46f"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=409"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 37,
+    "chunking_method_counts": {
+      "Atomic-Pass": 7,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 1,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 1,
+      "Table-Long-Row-Character-Split": 35
+    }
+  },
+  {
+    "document_title": "Student Transition Policy",
+    "chunk_count": 13,
+    "canonical_document_ids": [
+      "0f7789dee82d"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=226"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "HDR"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 7,
+      "Hard-Cut-Limit": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "Termination of Employment Procedure",
+    "chunk_count": 30,
+    "canonical_document_ids": [
+      "a9c02c6084cb"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=100"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Professional"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 25,
+      "Hard-Cut-Limit": 1,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Timetabling of Teaching and Learning Space Policy",
+    "chunk_count": 19,
+    "canonical_document_ids": [
+      "5a9c74ed49f1"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=199"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 0,
+    "chunking_method_counts": {
+      "Atomic-Pass": 13,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 3
+    }
+  },
+  {
+    "document_title": "Transgender and Gender Diverse Staff Support Policy",
+    "chunk_count": 32,
+    "canonical_document_ids": [
+      "2093ba303b95"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=397"
+    ],
+    "target_cohorts": [
+      "Staff"
+    ],
+    "contextual_audience_tags": [
+      "Casual",
+      "Guest"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14,
+      "Hard-Cut-Limit": 8,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 8
+    }
+  },
+  {
+    "document_title": "Travel Management Policy",
+    "chunk_count": 39,
+    "canonical_document_ids": [
+      "f2c387a71876"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=263"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 6,
+    "table_chunk_count": 6,
+    "chunking_method_counts": {
+      "Atomic-Pass": 18,
+      "Hard-Cut-Limit": 5,
+      "Hierarchical-Semantic-Optimized": 5,
+      "Lossless-Table-Split": 6,
+      "Semantic-Variance-Bypass": 5
+    }
+  },
+  {
+    "document_title": "University Vehicle Fleet Policy",
+    "chunk_count": 43,
+    "canonical_document_ids": [
+      "3d5c1941db66"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=257"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 8,
+    "table_chunk_count": 0,
+    "chunking_method_counts": {
+      "Atomic-Pass": 32,
+      "Hard-Cut-Limit": 3,
+      "Hierarchical-Semantic-Optimized": 5,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "VET Course Policy",
+    "chunk_count": 29,
+    "canonical_document_ids": [
+      "b11d21b05b95"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=124"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 18,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 3
+    }
+  },
+  {
+    "document_title": "VET Governance Policy",
+    "chunk_count": 27,
+    "canonical_document_ids": [
+      "441d9b028a5b"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=432"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 4,
+    "chunking_method_counts": {
+      "Atomic-Pass": 17,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 4,
+      "Semantic-Variance-Bypass": 2
+    }
+  },
+  {
+    "document_title": "VET Students Policy",
+    "chunk_count": 32,
+    "canonical_document_ids": [
+      "4c70cd11faad"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=400"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 4,
+    "table_chunk_count": 3,
+    "chunking_method_counts": {
+      "Atomic-Pass": 25,
+      "Hard-Cut-Limit": 1,
+      "Hierarchical-Semantic-Optimized": 2,
+      "Lossless-Table-Split": 3,
+      "Semantic-Variance-Bypass": 1
+    }
+  },
+  {
+    "document_title": "Visa Sponsorship Policy",
+    "chunk_count": 19,
+    "canonical_document_ids": [
+      "240e17a0bacd"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=98"
+    ],
+    "target_cohorts": [
+      "Staff"
+    ],
+    "contextual_audience_tags": [
+      "Professional"
+    ],
+    "exception_chunk_count": 1,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 17,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Website and Intranet Policy",
+    "chunk_count": 32,
+    "canonical_document_ids": [
+      "af9553a12c65"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=32"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 18,
+      "Hard-Cut-Limit": 2,
+      "Hierarchical-Semantic-Optimized": 10,
+      "Lossless-Table-Split": 2
+    }
+  },
+  {
+    "document_title": "Work Experience Placement, Cadetship or Internship Procedure",
+    "chunk_count": 14,
+    "canonical_document_ids": [
+      "de5b41fceba3"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=54"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Postgrad",
+      "Undergrad"
+    ],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 0,
+    "chunking_method_counts": {
+      "Atomic-Pass": 14
+    }
+  },
+  {
+    "document_title": "Workforce Management Policy",
+    "chunk_count": 5,
+    "canonical_document_ids": [
+      "7c63b2c692de"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=50"
+    ],
+    "target_cohorts": [
+      "Staff"
+    ],
+    "contextual_audience_tags": [],
+    "exception_chunk_count": 0,
+    "table_chunk_count": 0,
+    "chunking_method_counts": {
+      "Atomic-Pass": 5
+    }
+  },
+  {
+    "document_title": "Working with Children Policy",
+    "chunk_count": 29,
+    "canonical_document_ids": [
+      "7649e78aff2d"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=90"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 11,
+    "table_chunk_count": 9,
+    "chunking_method_counts": {
+      "Atomic-Pass": 11,
+      "Hard-Cut-Limit": 5,
+      "Lossless-Table-Split": 9,
+      "Semantic-Variance-Bypass": 4
+    }
+  },
+  {
+    "document_title": "Workplace Adjustment (Staff) Policy",
+    "chunk_count": 21,
+    "canonical_document_ids": [
+      "d85b9c6773a4"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=402"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Casual",
+      "Guest"
+    ],
+    "exception_chunk_count": 3,
+    "table_chunk_count": 2,
+    "chunking_method_counts": {
+      "Atomic-Pass": 5,
+      "Hard-Cut-Limit": 6,
+      "Hierarchical-Semantic-Optimized": 3,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 5
+    }
+  },
+  {
+    "document_title": "Workplace Behaviours Policy",
+    "chunk_count": 81,
+    "canonical_document_ids": [
+      "147244c4e3fc"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=87"
+    ],
+    "target_cohorts": [
+      "Public",
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 7,
+    "table_chunk_count": 5,
+    "chunking_method_counts": {
+      "Atomic-Pass": 49,
+      "Hard-Cut-Limit": 9,
+      "Hierarchical-Semantic-Optimized": 12,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 6,
+      "Table-Long-Row-Character-Split": 3
+    }
+  },
+  {
+    "document_title": "Workplace Issue Resolution (Staff) Procedure",
+    "chunk_count": 44,
+    "canonical_document_ids": [
+      "9a46b21688fc"
+    ],
+    "source_urls": [
+      "https://policies.latrobe.edu.au/document/view.php?id=51"
+    ],
+    "target_cohorts": [
+      "Staff",
+      "Student"
+    ],
+    "contextual_audience_tags": [
+      "Guest"
+    ],
+    "exception_chunk_count": 2,
+    "table_chunk_count": 6,
+    "chunking_method_counts": {
+      "Atomic-Pass": 25,
+      "Hard-Cut-Limit": 4,
+      "Hierarchical-Semantic-Optimized": 4,
+      "Lossless-Table-Split": 2,
+      "Semantic-Variance-Bypass": 5,
+      "Table-Long-Row-Character-Split": 4
+    }
+  }
+]
