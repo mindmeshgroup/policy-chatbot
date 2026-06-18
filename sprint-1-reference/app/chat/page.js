@@ -1,250 +1,126 @@
 'use client';
-import { useState, useEffect, useRef, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState } from 'react';
 
-const chatHistoryItems = [
-  { id: 1, text: 'Attendance : Average Rate of attendi..' },
-  { id: 2, text: 'Exam Rules: Academic Integrity' },
-  { id: 3, text: 'Fee Policy : How to pay my uni fees?' },
-  { id: 4, text: 'Refund Policy: Can I get a refund?' },
-];
-
-function ChatContent() {
-  const searchParams = useSearchParams();
-  const role = searchParams.get('role') || 'student';
-
+export default function Home() {
   const [messages, setMessages] = useState([
-    { id: 1, sender: 'bot', text: 'Hi! Ask me anything about La Trobe University Policies.' }
+    { role: 'assistant', text: 'Hi! Ask me anything about La Trobe University policies.' }
   ]);
-  const [inputValue, setInputValue] = useState('');
+  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [activeNav, setActiveNav] = useState('Chat');
-  const [selectedHistory, setSelectedHistory] = useState(null);
-  const bottomRef = useRef(null);
-  const inputRef = useRef(null);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
-
-  useEffect(() => {
-    if (!loading) inputRef.current?.focus();
-  }, [loading]);
-
-  const handleSend = () => {
-    if (inputValue.trim() === '' || loading) return;
-    const userText = inputValue.trim();
-    setMessages(prev => [...prev, { id: prev.length + 1, sender: 'user', text: userText }]);
-    setInputValue('');
+  const sendMessage = () => {
+    if (!input.trim()) return;
+    setMessages([...messages, { role: 'user', text: input }]);
+    setInput('');
     setLoading(true);
     setTimeout(() => {
-      setMessages(prev => [...prev, {
-        id: prev.length + 1,
-        sender: 'bot',
-        text: 'This is a placeholder response. Backend coming soon!',
-        sources: ['Academic Policy 2024, Page 3', 'Student Handbook 2024']
-      }]);
+      setMessages(prev => [...prev, { role: 'assistant', text: 'This is a placeholder response. Backend coming soon!' }]);
       setLoading(false);
     }, 2000);
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') handleSend();
-  };
-
-  const navItems = [
-    { label: 'Home', icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-        <polyline points="9 22 9 12 15 12 15 22"/>
-      </svg>
-    )},
-    { label: 'Chat', icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-      </svg>
-    )},
-    { label: 'History', icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <polyline points="12 6 12 12 16 14"/>
-      </svg>
-    )},
-    { label: 'Profile', icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-        <circle cx="12" cy="7" r="4"/>
-      </svg>
-    )},
-  ];
-
   return (
-    <div style={{ backgroundColor: 'white', minHeight: '100vh', display: 'flex', flexDirection: 'column', fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ backgroundColor: '#f5f5f5', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
 
-      {/* ── TOP NAVBAR — MOBILE ── */}
-      <div className="flex md:hidden" style={{ backgroundColor: 'white', padding: '16px 20px', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #eee', position: 'sticky', top: 0, zIndex: 10 }}>
-        <img src="/latrobe-logo.png" alt="La Trobe" style={{ height: '90px', objectFit: 'contain' }} />
-        <p style={{ fontSize: '13px', fontWeight: '500', color: '#444', margin: '4px 0 8px 0', textAlign: 'center' }}>Policy Chatbot</p>
-        <div style={{ height: '3px', backgroundColor: '#C8102E', width: '70%', borderRadius: '2px' }} />
-      </div>
+      {/* Card Container */}
+      <div style={{ width: '100%', maxWidth: '780px', backgroundColor: 'white', borderRadius: '20px', boxShadow: '0 8px 40px rgba(0,0,0,0.12)', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '85vh' }}>
 
-      {/* ── TOP NAVBAR — DESKTOP ── */}
-      <div className="hidden md:flex" style={{ backgroundColor: 'white', padding: '16px 60px', alignItems: 'center', gap: '24px', borderBottom: '1px solid #eee', position: 'sticky', top: 0, zIndex: 10 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flexShrink: 0 }}>
-          <img src="/latrobe-logo.png" alt="La Trobe" style={{ height: '90px', objectFit: 'contain' }} />
-          <p style={{ fontSize: '13px', fontWeight: '500', color: '#444', margin: '4px 0 0 0' }}>Policy Chatbot</p>
-        </div>
-        <div style={{ flex: 1, margin: '0 16px' }}>
-          <div style={{ border: '3px solid #C8102E', borderRadius: '8px', padding: '14px 24px', fontSize: '18px', fontWeight: '700', color: '#1a1a1a' }}>
-            Home
+        {/* Header */}
+        <div style={{ backgroundColor: '#C8102E', padding: '20px 28px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <img
+            src="/latrobe-logo.png"
+            alt="La Trobe Logo"
+            style={{ height: '40px', objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
+          />
+          <div>
+            <h1 style={{ color: 'white', fontSize: '18px', fontWeight: '700', margin: 0 }}>Policy Chatbot</h1>
+            <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', margin: 0 }}>Ask questions about La Trobe University policies - Developed by Mind Mesh Group</p>
           </div>
-        </div>
-        <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#C8102E', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, boxShadow: '0 4px 8px rgba(0,0,0,0.25)' }}>
-          <span style={{ color: 'white', fontWeight: '700', fontSize: '24px' }}>Y</span>
-        </div>
-      </div>
-
-      {/* ── MAIN LAYOUT ── */}
-      <div style={{ display: 'flex', flex: 1, width: '100%', maxWidth: '1440px', margin: '0 auto', padding: '24px 60px', gap: '24px', paddingBottom: '100px', backgroundColor: 'white' }}>
-
-        {/* ── SIDEBAR — desktop only ── */}
-        <div className="hidden md:flex" style={{ width: '315px', flexShrink: 0, backgroundColor: 'white', borderRadius: '12px', border: '2.5px solid #C8102E', padding: '24px 20px', flexDirection: 'column', gap: '16px', height: 'fit-content' }}>
-          <div style={{ textAlign: 'center' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#1a1a1a', margin: '0 0 8px 0' }}>Chat History</h2>
-            <div style={{ height: '2px', backgroundColor: '#C8102E', width: '60%', margin: '0 auto' }} />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
-            {chatHistoryItems.map(item => (
-              <button
-                key={item.id}
-                onClick={() => setSelectedHistory(item.id)}
-                style={{
-                  textAlign: 'left', padding: '8px 16px', borderRadius: '8px',
-                  border: '1.5px solid #d9d9d9',
-                  backgroundColor: selectedHistory === item.id ? '#fff0f0' : 'white',
-                  fontSize: '13px', fontWeight: '500', color: '#1a1a1a',
-                  cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.08)',
-                  transition: 'all 0.2s', fontFamily: "'DM Sans', sans-serif"
-                }}
-                onMouseOver={e => e.currentTarget.style.backgroundColor = '#fff0f0'}
-                onMouseOut={e => e.currentTarget.style.backgroundColor = selectedHistory === item.id ? '#fff0f0' : 'white'}
-              >
-                {item.text}
-              </button>
-            ))}
+          <div style={{ marginLeft: 'auto', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '20px', padding: '4px 12px' }}>
+            <span style={{ color: 'white', fontSize: '11px' }}>● Online</span>
           </div>
         </div>
 
-        {/* ── CHAT PANEL ── */}
-        <div className="md:border-2 md:border-[#a0a0a0] md:rounded-xl" style={{ flex: 1, backgroundColor: 'white', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: '680px' }}>
+        {/* Disclaimer Banner */}
+        <div style={{ backgroundColor: '#fff8e1', borderBottom: '1px solid #ffe082', padding: '8px 28px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '13px', color: '#7a6000' }}>⚠️ Responses are based on official La Trobe policy documents. For legal advice, contact university staff.</span>
+        </div>
 
-          {/* Disclaimer */}
-          <div style={{ backgroundColor: '#fff8e1', borderBottom: '1px solid #ffe082', padding: '8px 24px' }}>
-            <span style={{ fontSize: '12px', color: '#7a6000' }}>⚠️ Responses are based on official La Trobe policy documents. For legal advice, contact university staff.</span>
-          </div>
+        {/* Messages */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '16px', backgroundColor: '#fafafa' }}>
+          {messages.map((msg, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: '8px' }}>
 
-          {/* Messages */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            {messages.map((msg) => (
-              <div key={msg.id}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start', gap: '10px' }}>
-                  {msg.sender === 'bot' && (
-                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#CB0101', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 1px 2px rgba(0,0,0,0.25)' }}>
-                      <span style={{ color: 'white', fontSize: '10px', fontWeight: '700' }}>LTU</span>
-                    </div>
-                  )}
-                  <div style={{
-                    maxWidth: '55%', minHeight: '48px', padding: '12px 16px',
-                    backgroundColor: 'white', borderRadius: '8px',
-                    border: '2px solid #a0a0a0', fontSize: '13px',
-                    fontWeight: '500', color: '#1a1a1a', lineHeight: '1.5',
-                    fontFamily: "'DM Sans', sans-serif"
-                  }}>
-                    {msg.text}
-                  </div>
-                  {msg.sender === 'user' && (
-                    <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#CB0101', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 1px 2px rgba(0,0,0,0.25)' }}>
-                      <span style={{ color: 'white', fontSize: '13px', fontWeight: '700' }}>Y</span>
-                    </div>
-                  )}
+              {/* Bot Avatar */}
+              {msg.role === 'assistant' && (
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#C8102E', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ color: 'white', fontSize: '14px' }}>L</span>
                 </div>
-                {msg.sources && (
-                  <div style={{ marginLeft: msg.sender === 'bot' ? '42px' : '0', marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start' }}>
-                    {msg.sources.map((source, si) => (
-                      <span key={si} style={{ fontSize: '11px', backgroundColor: '#fff0f0', color: '#C8102E', border: '1px solid #ffcccc', borderRadius: '12px', padding: '2px 10px' }}>
-                        📄 {source}
-                      </span>
-                    ))}
-                  </div>
-                )}
+              )}
+
+              <div style={{
+                maxWidth: '65%',
+                padding: '12px 16px',
+                borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                backgroundColor: msg.role === 'user' ? '#C8102E' : 'white',
+                color: msg.role === 'user' ? 'white' : '#1a1a1a',
+                fontSize: '14px',
+                lineHeight: '1.5',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                border: msg.role === 'assistant' ? '1px solid #eee' : 'none'
+              }}>
+                {msg.text}
               </div>
-            ))}
 
-            {loading && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#CB0101', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ color: 'white', fontSize: '10px', fontWeight: '700' }}>LTU</span>
+              {/* User Avatar */}
+              {msg.role === 'user' && (
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ color: 'white', fontSize: '14px' }}>Y</span>
                 </div>
-                <div style={{ backgroundColor: 'white', border: '2px solid #a0a0a0', borderRadius: '8px', padding: '14px 18px', display: 'flex', gap: '5px', alignItems: 'center' }}>
-                  {[0, 150, 300].map((delay, i) => (
-                    <span key={i} className="animate-bounce" style={{ width: '8px', height: '8px', backgroundColor: '#CB0101', borderRadius: '50%', display: 'inline-block', animationDelay: `${delay}ms` }} />
-                  ))}
-                </div>
-              </div>
-            )}
-            <div ref={bottomRef} />
-          </div>
-
-          {/* Input */}
-          <div style={{ padding: '16px 24px', borderTop: '1px solid #eee', backgroundColor: 'white' }}>
-            <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#f7f7f7', border: '2px solid #a0a0a0', borderRadius: '8px', overflow: 'hidden' }}>
-              <input
-                ref={inputRef}
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask a question........."
-                maxLength={500}
-                style={{ flex: 1, height: '56px', backgroundColor: 'transparent', padding: '0 20px', fontSize: '13px', fontWeight: '500', color: '#1a1a1a', outline: 'none', border: 'none', fontFamily: "'DM Sans', sans-serif" }}
-              />
-              <button
-                onClick={handleSend}
-                disabled={loading || !inputValue.trim()}
-                style={{ width: '60px', height: '56px', backgroundColor: loading || !inputValue.trim() ? '#e0e0e0' : '#CB0101', border: 'none', cursor: loading || !inputValue.trim() ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.2s' }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="22" y1="2" x2="11" y2="13"/>
-                  <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                </svg>
-              </button>
+              )}
             </div>
-          </div>
+          ))}
+
+          {/* Loading Dots */}
+          {loading && (
+            <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-end', gap: '8px' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#C8102E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ color: 'white', fontSize: '14px' }}>L</span>
+              </div>
+              <div style={{ backgroundColor: 'white', border: '1px solid #eee', borderRadius: '18px 18px 18px 4px', padding: '14px 18px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', display: 'flex', gap: '5px', alignItems: 'center' }}>
+                {[0, 150, 300].map((delay, i) => (
+                  <span key={i} className="animate-bounce" style={{ width: '8px', height: '8px', backgroundColor: '#C8102E', borderRadius: '50%', display: 'inline-block', animationDelay: `${delay}ms` }}></span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* ── MOBILE FOOTER MENU ── */}
-      <div className="flex md:hidden" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, backgroundColor: 'white', borderTop: '1px solid #eee', padding: '8px 0 12px', justifyContent: 'space-around', zIndex: 20 }}>
-        {navItems.map(item => (
+        {/* Input Area */}
+        <div style={{ padding: '16px 28px', backgroundColor: 'white', borderTop: '1px solid #eee', display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+            placeholder="Ask a policy question..."
+            style={{ flex: 1, border: '1.5px solid #e0e0e0', borderRadius: '25px', padding: '12px 20px', fontSize: '14px', outline: 'none', backgroundColor: '#fafafa' }}
+          />
           <button
-            key={item.label}
-            onClick={() => setActiveNav(item.label)}
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 16px', borderRadius: '10px', backgroundColor: activeNav === item.label ? '#C8102E' : 'white', boxShadow: activeNav === item.label ? '0 4px 8px rgba(0,0,0,0.2)' : 'none', transition: 'all 0.2s' }}
+            onClick={sendMessage}
+            disabled={loading}
+            style={{ backgroundColor: loading ? '#e0e0e0' : '#C8102E', color: 'white', border: 'none', borderRadius: '25px', padding: '12px 24px', fontSize: '14px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}
           >
-            <span style={{ color: activeNav === item.label ? 'white' : '#666' }}>{item.icon}</span>
-            <span style={{ fontSize: '10px', fontWeight: '500', color: activeNav === item.label ? 'white' : '#666', fontFamily: "'DM Sans', sans-serif" }}>{item.label}</span>
+            Send
           </button>
-        ))}
+        </div>
+
+        {/* Footer */}
+        <div style={{ backgroundColor: '#1a1a1a', padding: '8px 28px', textAlign: 'center' }}>
+          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>La Trobe University Policy Chatbot · For official use only</span>
+        </div>
+
       </div>
-
     </div>
-  );
-}
-
-export default function ChatPage() {
-  return (
-    <Suspense fallback={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: "'DM Sans', sans-serif" }}>Loading...</div>}>
-      <ChatContent />
-    </Suspense>
   );
 }
